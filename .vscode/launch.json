@@ -1,0 +1,840 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Attach to Remote Program",
+            "request": "attach",
+            "hostName": "127.0.0.1",
+            "port": "5005"
+        },
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "WhoClient",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.security.authentication.examples.WhoClient",
+            "projectName": "hadoop-auth-examples"
+        },
+        {
+            "type": "java",
+            "name": "PlatformName",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.PlatformName",
+            "projectName": "hadoop-auth"
+        },
+        {
+            "type": "java",
+            "name": "Configuration",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.conf.Configuration",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestConfiguration",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.conf.TestConfiguration",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "KeyShell",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.crypto.key.KeyShell",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "DF",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.DF",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "DU",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.DU",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "DUHelper",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.DUHelper",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "FsShell",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.FsShell",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "DataGenerator",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.loadGenerator.DataGenerator",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "LoadGenerator",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.loadGenerator.LoadGenerator",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "StructureGenerator",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.loadGenerator.StructureGenerator",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "HtmlQuoting",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.http.HtmlQuoting",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "MapFile",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.MapFile",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestArrayFile",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.TestArrayFile",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestSequenceFile",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.TestSequenceFile",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestSetFile",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.TestSetFile",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "CompressionCodecFactory",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.compress.CompressionCodecFactory",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestCodec",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.compress.TestCodec",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "RawErasureCoderBenchmark",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.erasurecode.rawcoder.RawErasureCoderBenchmark",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "NanoTimer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.file.tfile.NanoTimer",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TFile",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.file.tfile.TFile",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestTFileSeek",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.file.tfile.TestTFileSeek",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestTFileSeqFileComparison",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.io.file.tfile.TestTFileSeqFileComparison",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "MiniRPCBenchmark",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.ipc.MiniRPCBenchmark",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "RPCCallBenchmark",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.ipc.RPCCallBenchmark",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestRPC",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.ipc.TestRPC",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestSaslRPC",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.ipc.TestSaslRPC",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "LogLevel",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.log.LogLevel",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "HadoopKerberosName",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.security.HadoopKerberosName",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "KDiag",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.security.KDiag",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "ManualTestKeytabLogins",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.security.ManualTestKeytabLogins",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "UserGroupInformation",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.security.UserGroupInformation",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "CredentialShell",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.security.alias.CredentialShell",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestProxyUsers",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.security.authorize.TestProxyUsers",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "DtUtilShell",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.security.token.DtUtilShell",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "ServiceLauncher",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.service.launcher.ServiceLauncher",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "CoreTestDriver",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.test.CoreTestDriver",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "ClassLoaderCheckMain",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.ClassLoaderCheckMain",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "Classpath",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.Classpath",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "ConfTest",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.ConfTest",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "Crc32PerformanceTest",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.Crc32PerformanceTest",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "FindClass",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.FindClass",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "JvmPauseMonitor",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.JvmPauseMonitor",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "NativeLibraryChecker",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.NativeLibraryChecker",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "PrintJarMainClass",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.PrintJarMainClass",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "RunJar",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.RunJar",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "SysInfoLinux",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.SysInfoLinux",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestPureJavaCrc32$PerformanceTest",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.TestPureJavaCrc32$PerformanceTest",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestPureJavaCrc32$Table",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.TestPureJavaCrc32$Table",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "TestStringUtils",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.TestStringUtils",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "VersionInfo",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.VersionInfo",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "JenkinsHash",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.util.hash.JenkinsHash",
+            "projectName": "hadoop-common"
+        },
+        {
+            "type": "java",
+            "name": "HdfsConfiguration",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.HdfsConfiguration",
+            "projectName": "hadoop-hdfs-client"
+        },
+        {
+            "type": "java",
+            "name": "TestByteArrayManager",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.util.TestByteArrayManager",
+            "projectName": "hadoop-hdfs-client"
+        },
+        {
+            "type": "java",
+            "name": "HttpFSServerWebServer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.http.server.HttpFSServerWebServer",
+            "projectName": "hadoop-hdfs-httpfs"
+        },
+        {
+            "type": "java",
+            "name": "TestOutOfOrderWrite",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.nfs.TestOutOfOrderWrite",
+            "projectName": "hadoop-hdfs-nfs"
+        },
+        {
+            "type": "java",
+            "name": "TestUdpServer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.nfs.TestUdpServer",
+            "projectName": "hadoop-hdfs-nfs"
+        },
+        {
+            "type": "java",
+            "name": "Mountd",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.nfs.mount.Mountd",
+            "projectName": "hadoop-hdfs-nfs"
+        },
+        {
+            "type": "java",
+            "name": "Nfs3",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.nfs.nfs3.Nfs3",
+            "projectName": "hadoop-hdfs-nfs"
+        },
+        {
+            "type": "java",
+            "name": "DFSRouter",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.federation.router.DFSRouter",
+            "projectName": "hadoop-hdfs-rbf"
+        },
+        {
+            "type": "java",
+            "name": "RouterAdmin",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.federation.RouterAdmin",
+            "projectName": "hadoop-hdfs-rbf"
+        },
+        {
+            "type": "java",
+            "name": "TestLoadGenerator",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.fs.loadGenerator.TestLoadGenerator",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "BenchmarkThroughput",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.BenchmarkThroughput",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DataNodeCluster",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.DataNodeCluster",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "ErasureCodeBenchmarkThroughput",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "ListingBenchmark",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.ListingBenchmark",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestBalancerBandwidth",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestBalancerBandwidth",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestDFSFinalize",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestDFSFinalize",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestDFSRollback",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestDFSRollback",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestDFSStartupVersions",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestDFSStartupVersions",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestDFSUpgrade",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestDFSUpgrade",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestModTime",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestModTime",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestMultiThreadedHflush",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestMultiThreadedHflush",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestPread",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestPread",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestSetTimes",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestSetTimes",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestWriteRead",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.TestWriteRead",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "JournalNode",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.qjournal.server.JournalNode",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "Balancer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.balancer.Balancer",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestBalancer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.balancer.TestBalancer",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DataNode",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.datanode.DataNode",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestBlockReplacement",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.datanode.TestBlockReplacement",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "Mover",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.mover.Mover",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "CreateEditsLog",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.namenode.CreateEditsLog",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "NNThroughputBenchmark",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.namenode.NNThroughputBenchmark",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "NameNode",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.namenode.NameNode",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "SecondaryNameNode",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.namenode.SecondaryNameNode",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "ExternalStoragePolicySatisfier",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.server.sps.ExternalStoragePolicySatisfier",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "TestShortCircuitLocalRead",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.shortcircuit.TestShortCircuitLocalRead",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "CacheAdmin",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.CacheAdmin",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "CryptoAdmin",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.CryptoAdmin",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DFSAdmin",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.DFSAdmin",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DFSHAAdmin",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.DFSHAAdmin",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DFSZKFailoverController",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.DFSZKFailoverController",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DFSck",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.DFSck",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DebugAdmin",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.DebugAdmin",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DelegationTokenFetcher",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.DelegationTokenFetcher",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "DiskBalancerCLI",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.DiskBalancerCLI",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "ECAdmin",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.ECAdmin",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "GetConf",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.GetConf",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "GetGroups",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.GetGroups",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "HDFSConcat",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.HDFSConcat",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "JMXGet",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.JMXGet",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "StoragePolicyAdmin",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.StoragePolicyAdmin",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "OfflineEditsViewer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.offlineEditsViewer.OfflineEditsViewer",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "OfflineImageViewer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewer",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "OfflineImageViewerPB",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewerPB",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "LsSnapshottableDir",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.snapshot.LsSnapshottableDir",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "SnapshotDiff",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.hdfs.tools.snapshot.SnapshotDiff",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "HdfsTestDriver",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.test.HdfsTestDriver",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "MiniDFSClusterManager",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.test.MiniDFSClusterManager",
+            "projectName": "hadoop-hdfs"
+        },
+        {
+            "type": "java",
+            "name": "KMSBenchmark",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.crypto.key.kms.server.KMSBenchmark",
+            "projectName": "hadoop-kms"
+        },
+        {
+            "type": "java",
+            "name": "KMSWebServer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.crypto.key.kms.server.KMSWebServer",
+            "projectName": "hadoop-kms"
+        },
+        {
+            "type": "java",
+            "name": "MiniKdc",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.minikdc.MiniKdc",
+            "projectName": "hadoop-minikdc"
+        },
+        {
+            "type": "java",
+            "name": "Portmap",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.portmap.Portmap",
+            "projectName": "hadoop-nfs"
+        },
+        {
+            "type": "java",
+            "name": "RegistryCli",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.registry.cli.RegistryCli",
+            "projectName": "hadoop-registry"
+        },
+        {
+            "type": "java",
+            "name": "RegistryDNSServer",
+            "request": "launch",
+            "mainClass": "org.apache.hadoop.registry.server.dns.RegistryDNSServer",
+            "projectName": "hadoop-registry"
+        }
+    ]
+}
