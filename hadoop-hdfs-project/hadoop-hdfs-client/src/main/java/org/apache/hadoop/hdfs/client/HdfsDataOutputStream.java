@@ -23,6 +23,7 @@ import java.util.EnumSet;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.compress.CompressOutputStream;
 import org.apache.hadoop.crypto.CryptoOutputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -57,6 +58,14 @@ public class HdfsDataOutputStream extends FSDataOutputStream {
   public HdfsDataOutputStream(CryptoOutputStream out,
       FileSystem.Statistics stats) throws IOException {
     this(out, stats, 0L);
+  }
+
+  public HdfsDataOutputStream(CompressOutputStream out,
+                              FileSystem.Statistics stats, long startPosition) throws IOException {
+    super(out, stats, startPosition);
+    Preconditions.checkArgument(
+            out.getWrappedStream() instanceof DFSOutputStream,
+            "CryptoOutputStream should wrap a DFSOutputStream");
   }
 
   /**

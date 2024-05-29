@@ -57,6 +57,7 @@ import javax.net.SocketFactory;
 
 import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.compress.CompressOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.crypto.CryptoCodec;
 import org.apache.hadoop.crypto.CryptoInputStream;
@@ -170,6 +171,12 @@ import org.apache.hadoop.hdfs.util.IOUtilsClient;
 import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.io.compress.Lz4Codec;
+import org.apache.hadoop.io.compress.bzip2.Bzip2Factory;
+import org.apache.hadoop.io.compress.zlib.ZlibCompressor;
+import org.apache.hadoop.io.compress.zlib.ZlibFactory;
 import org.apache.hadoop.io.retry.LossyRetryInvocationHandler;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RemoteException;
@@ -182,11 +189,8 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenRenewer;
-import org.apache.hadoop.util.Daemon;
-import org.apache.hadoop.util.DataChecksum;
+import org.apache.hadoop.util.*;
 import org.apache.hadoop.util.DataChecksum.Type;
-import org.apache.hadoop.util.Progressable;
-import org.apache.hadoop.util.Time;
 import org.apache.hadoop.tracing.TraceScope;
 import org.apache.hadoop.tracing.Tracer;
 import org.slf4j.Logger;
@@ -1010,7 +1014,18 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       return new HdfsDataOutputStream(cryptoOut, statistics, startPos);
     } else {
       // No FileEncryptionInfo present so no encryption.
-      return new HdfsDataOutputStream(dfsos, statistics, startPos);
+//      return new HdfsDataOutputStream(dfsos, statistics, startPos);
+//      ZlibFactory.setCompressionLevel(conf, ZlibCompressor.CompressionLevel.BEST_COMPRESSION);
+//      ZlibFactory.setNativeZlibLoaded(false);
+      try {
+        final CompressionCodec codec = (CompressionCodec)
+                ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress.SnappyCodec"), conf);
+        final CompressOutputStream compressOut =
+                new CompressOutputStream(dfsos, codec);
+        return new HdfsDataOutputStream(compressOut, statistics, startPos);
+      } catch (ClassNotFoundException cnfe) {
+        throw new IOException("Illegal codec!");
+      }
     }
   }
 
