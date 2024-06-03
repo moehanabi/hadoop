@@ -57,6 +57,7 @@ import javax.net.SocketFactory;
 
 import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.compress.CompressInputStream;
 import org.apache.hadoop.compress.CompressOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.crypto.CryptoCodec;
@@ -974,7 +975,16 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       return new HdfsDataInputStream(cryptoIn);
     } else {
       // No FileEncryptionInfo so no encryption.
-      return new HdfsDataInputStream(dfsis);
+//      return new HdfsDataInputStream(dfsis);
+      try {
+        final CompressionCodec codec = (CompressionCodec)
+                ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress.SnappyCodec"), conf);
+        final CompressInputStream compressIn =
+                new CompressInputStream(dfsis, codec);
+        return new HdfsDataInputStream(compressIn);
+      } catch (ClassNotFoundException cnfe) {
+        throw new IOException("Illegal codec!");
+      }
     }
   }
 
