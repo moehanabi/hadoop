@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.compress.CompressInputStream;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.crypto.CryptoInputStream;
 import org.apache.hadoop.hdfs.DFSInputStream;
@@ -49,9 +50,18 @@ public class HdfsDataInputStream extends FSDataInputStream {
         "CryptoInputStream should wrap a DFSInputStream");
   }
 
+  public HdfsDataInputStream(CompressInputStream in) {
+    super(in);
+    Preconditions.checkArgument(in.getWrappedStream() instanceof DFSInputStream,
+            "CompressInputStream should wrap a DFSInputStream");
+  }
+
   private DFSInputStream getDFSInputStream() {
     if (in instanceof CryptoInputStream) {
       return (DFSInputStream) ((CryptoInputStream) in).getWrappedStream();
+    }
+    if (in instanceof CompressInputStream) {
+      return (DFSInputStream) ((CompressInputStream) in).getWrappedStream();
     }
     return (DFSInputStream) in;
   }
