@@ -46,6 +46,9 @@ public class CompressOutputStream extends FilterOutputStream implements
     // private final Compressor compressor;
     private final CompressionOutputStream compressor;
     private final int bufferSize = 512;
+    // TODO: This may lager than compressor buffer, check how to solve it.
+    private final int compressSize = 256 * 1024;
+    private int currentSize = 0;
 
     /**
      * Input data buffer. The data starts at inBuffer.position() and ends at
@@ -108,8 +111,12 @@ public class CompressOutputStream extends FilterOutputStream implements
             throw new IndexOutOfBoundsException();
         }
         compressor.write(b, off, len);
-        compressor.flush();
-
+        currentSize += len;
+        if (currentSize >= compressSize) {
+            compressor.finish();
+            compressor.resetState();
+            currentSize = 0;
+        }
         // writeIndex();
     }
 
