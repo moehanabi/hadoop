@@ -59,6 +59,7 @@ import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.compress.CompressInputStream;
 import org.apache.hadoop.compress.CompressOutputStream;
+import org.apache.hadoop.compress.CompressionIndexListener;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.crypto.CryptoCodec;
 import org.apache.hadoop.crypto.CryptoInputStream;
@@ -1023,15 +1024,28 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
               decrypted.getMaterial(), feInfo.getIV(), startPos);
       return new HdfsDataOutputStream(cryptoOut, statistics, startPos);
     } else {
+      class DFSClientCompressionIndexListener implements CompressionIndexListener {
+        private final DFSClient dfsClient;
+
+        public DFSClientCompressionIndexListener(DFSClient dfsClient) {
+          this.dfsClient = dfsClient;
+        }
+
+        @Override
+        public void addCompressionIndex(String src, Map<Long, Long> indexMap) throws IOException {
+          dfsClient.addCompressionIndex(new Path(src), indexMap);
+        }
+      }
       // No FileEncryptionInfo present so no encryption.
 //      return new HdfsDataOutputStream(dfsos, statistics, startPos);
 //      ZlibFactory.setCompressionLevel(conf, ZlibCompressor.CompressionLevel.BEST_COMPRESSION);
 //      ZlibFactory.setNativeZlibLoaded(false);
       try {
+        CompressionIndexListener indexListener = new DFSClientCompressionIndexListener(this);
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress.SnappyCodec"), conf);
         final CompressOutputStream compressOut =
-                new CompressOutputStream(dfsos, codec);
+                new CompressOutputStream(dfsos, codec, indexListener);
         return new HdfsDataOutputStream(compressOut, statistics, startPos);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
@@ -3467,4 +3481,9 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     }
   }
 
+  public void addCompressionIndex(Path path, Map<Long, Long> indexMap) throws IOException {
+//    String src = getPathName(path);
+    String src = "/tmp";
+    namenode.addCompressionIndex(src, indexMap);
+  }
 }

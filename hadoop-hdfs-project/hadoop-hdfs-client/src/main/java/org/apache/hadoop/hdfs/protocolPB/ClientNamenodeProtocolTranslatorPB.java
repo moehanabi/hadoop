@@ -199,6 +199,7 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Update
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpgradeStatusRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpgradeStatusResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SatisfyStoragePolicyRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AddCompressionIndexRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.*;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.CreateEncryptionZoneRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.EncryptionZoneProto;
@@ -2081,4 +2082,20 @@ public class ClientNamenodeProtocolTranslatorPB implements
     }
   }
 
+  @Override
+  public void addCompressionIndex(String src, Map<Long, Long> indexMap) throws IOException {
+    // Convert the Map<Long, Long> to the appropriate protobuf format
+    // For example, if you have a AddCompressionIndexRequestProto message in your protobuf definition:
+    AddCompressionIndexRequestProto request = AddCompressionIndexRequestProto.newBuilder()
+            .setSrc(src)
+            .putAllIndexMap(indexMap)
+            .build();
+
+    // Use the rpcProxy to send the request
+    try {
+      rpcProxy.addCompressionIndex(null, request);
+    } catch (ServiceException e) {
+      throw ProtobufHelper.getRemoteException(e);
+    }
+  }
 }

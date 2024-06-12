@@ -1793,4 +1793,9 @@ public class RouterRpcServer extends AbstractService implements ClientProtocol,
     }
   }
 
+  @Override
+  public void addCompressionIndex(String src, Map<Long, Long> indexMap) throws IOException {
+    System.out.println("yes we are in RouterRpcServer.java:addCompressionIndex");
+    clientProto.addCompressionIndex(src, indexMap);
+  }
 }

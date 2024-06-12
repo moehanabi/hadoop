@@ -2202,4 +2202,9 @@ public class RouterClientProtocol implements ClientProtocol {
     }
     return false;
   }
+
+  @Override
+  public void addCompressionIndex(String src, Map<Long, Long> indexMap) throws IOException {
+    System.out.println("yes we are in RouterClientProtocol.java:addCompressionIndex");
+  }
 }

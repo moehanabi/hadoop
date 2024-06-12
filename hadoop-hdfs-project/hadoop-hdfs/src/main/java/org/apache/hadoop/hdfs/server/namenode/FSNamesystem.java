@@ -2802,6 +2802,20 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
     }
   }
 
+  public void addCompressionIndex(String src, Map<Long, Long> indexMap) {
+    writeLock();
+    try {
+      checkOperation(OperationCategory.WRITE);
+      checkNameNodeSafeMode("Cannot add compression index for " + src);
+//      compressionIndexMap.put(src, indexMap);
+      System.out.println("yes we are in addCompressionIndex");
+    } catch (IOException e) {
+      LOG.error("Failed to add compression index for " + src, e);
+    } finally {
+      writeUnlock("addCompressionIndex");
+    }
+  }
+
   enum RecoverLeaseOp {
     CREATE_FILE,
     APPEND_FILE,

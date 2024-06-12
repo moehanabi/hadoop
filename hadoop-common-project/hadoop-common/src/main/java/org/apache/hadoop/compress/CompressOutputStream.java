@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.statistics.IOStatistics;
 import org.apache.hadoop.fs.statistics.IOStatisticsSource;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
+import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 // import org.apache.hadoop.io.compress.Compressor;
 // import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 
@@ -34,6 +35,7 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 import static org.apache.hadoop.fs.statistics.IOStatisticsSupport.retrieveIOStatistics;
 
@@ -49,6 +51,7 @@ public class CompressOutputStream extends FilterOutputStream implements
     // TODO: This may lager than compressor buffer, check how to solve it.
     private final int compressSize = 256 * 1024;
     private int currentSize = 0;
+    private final CompressionIndexListener indexListener;
 
     /**
      * Input data buffer. The data starts at inBuffer.position() and ends at
@@ -66,15 +69,15 @@ public class CompressOutputStream extends FilterOutputStream implements
     private boolean closed;
     private boolean closeOutputStream;
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec) throws IOException {
-        this(out, codec, 0);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, CompressionIndexListener indexListener) throws IOException {
+        this(out, codec, 0, indexListener);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset) throws IOException {
-        this(out, codec, streamOffset, true);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, CompressionIndexListener indexListener) throws IOException {
+        this(out, codec, streamOffset, true, indexListener);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, boolean closeOutputStream) throws IOException {
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, boolean closeOutputStream, CompressionIndexListener indexListener) throws IOException {
         super(out);
 //        this.bufferSize = CryptoStreamUtils.checkBufferSize(codec, bufferSize);
         this.codec = codec;
@@ -89,6 +92,7 @@ public class CompressOutputStream extends FilterOutputStream implements
         }
 //        compressor = codec.createCompressor();
 //        updateCompressor();
+        this.indexListener = indexListener;
     }
 
     public OutputStream getWrappedStream() {
@@ -117,7 +121,11 @@ public class CompressOutputStream extends FilterOutputStream implements
             compressor.resetState();
             currentSize = 0;
         }
-        // writeIndex();
+        writeIndex("/tmp", null);
+    }
+
+    public void writeIndex(String src, Map<Long, Long> indexMap) throws IOException {
+        indexListener.addCompressionIndex(src, indexMap);
     }
 
     private byte[] tmpBuf;

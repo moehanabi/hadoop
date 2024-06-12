@@ -872,6 +872,16 @@ message HAServiceStateResponseProto {
   required hadoop.common.HAServiceStateProto state = 1;
 }
 
+message AddCompressionIndexRequestProto {
+  required string src = 1;
+  map<int64, int64> indexMap = 2;
+}
+
+message AddCompressionIndexResponseProto {
+    // 这个消息可能不需要任何字段，因为添加压缩索引可能不需要返回任何信息
+    // 如果需要返回信息，你可以在这里添加字段
+}
+
 service ClientNamenodeProtocol {
   rpc getBlockLocations(GetBlockLocationsRequestProto)
       returns(GetBlockLocationsResponseProto);
@@ -1069,4 +1079,6 @@ service ClientNamenodeProtocol {
       returns(HAServiceStateResponseProto);
   rpc getSlowDatanodeReport(GetSlowDatanodeReportRequestProto)
       returns(GetSlowDatanodeReportResponseProto);
+  rpc addCompressionIndex(AddCompressionIndexRequestProto)
+      returns(AddCompressionIndexResponseProto);
 }

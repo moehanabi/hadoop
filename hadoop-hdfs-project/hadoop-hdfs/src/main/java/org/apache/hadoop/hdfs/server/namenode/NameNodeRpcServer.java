@@ -2672,4 +2672,10 @@ public class NameNodeRpcServer implements NamenodeProtocols {
     }
     return namesystem.getBlockManager().getSPSManager().getNextPathId();
   }
+
+  @Override // ClientProtocol
+  public void addCompressionIndex(String src, Map<Long, Long> indexMap) throws IOException {
+    checkNNStartup();
+    namesystem.addCompressionIndex(src, indexMap);
+  }
 }

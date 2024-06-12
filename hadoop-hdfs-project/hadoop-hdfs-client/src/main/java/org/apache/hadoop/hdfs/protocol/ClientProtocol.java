@@ -1868,4 +1868,5 @@ public interface ClientProtocol {
   @ReadOnly
   DatanodeInfo[] getSlowDatanodeReport() throws IOException;
 
+  void addCompressionIndex(String src, Map<Long, Long> indexMap) throws IOException;
 }
