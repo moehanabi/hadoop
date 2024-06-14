@@ -26,8 +26,6 @@ import org.apache.hadoop.fs.impl.StoreImplementationUtils;
 import org.apache.hadoop.fs.statistics.IOStatistics;
 import org.apache.hadoop.fs.statistics.IOStatisticsSource;
 import org.apache.hadoop.io.compress.CompressionCodec;
-// import org.apache.hadoop.io.compress.Compressor;
-// import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -48,18 +46,18 @@ public class CompressOutputStream extends FilterOutputStream implements
     private final byte[] oneByteBuf = new byte[1];
     private final CompressionCodec codec;
     private final Compressor compressor;
-    // TODO: This may lager than compressor buffer, check how to solve it.
-    private final int compressSize;
-    private ByteBuffer uncompressedBuf = null;
-    private final byte[] compressedBuf;
-    private int uncompressedBufOff = 0;
-    private int uncompressedBufLen = 0;
+//    private final int compressSize;
+    private ByteBuffer uncompressedDirectBuf = null;
+    private byte[] uncompressedBuf;
+    private byte[] compressedBuf;
+//    private int uncompressedBufOff = 0;
+//    private int uncompressedBufLen = 0;
     private final String filePath;
     private long uncompressedIndex = 0;
     private long currentCompressedIndex = 0;
     private long nextCompressedIndex = 0;
-    private ArrayList<Long> uncompressedIndexs = new ArrayList<>();
-    private ArrayList<Long> compressedIndexs = new ArrayList<>();
+    private final ArrayList<Long> uncompressedIndexes = new ArrayList<>();
+    private final ArrayList<Long> compressedIndexes = new ArrayList<>();
     /**
      * Input data buffer. The data starts at inBuffer.position() and ends at
      * inBuffer.limit().
@@ -96,8 +94,9 @@ public class CompressOutputStream extends FilterOutputStream implements
         this.codec = codec;
         this.filePath = filePath;
         System.out.println("FilePath:" + filePath);
-        this.compressSize = compressSize;
-        uncompressedBuf = ByteBuffer.allocateDirect(compressSize);
+//        this.compressSize = compressSize;
+        uncompressedDirectBuf = ByteBuffer.allocateDirect(compressSize);
+        uncompressedBuf = new byte[compressSize];
         compressedBuf = new byte[compressSize];
         compressor = codec.createCompressor();
 
@@ -128,15 +127,18 @@ public class CompressOutputStream extends FilterOutputStream implements
             return;
         }
 
-        if (uncompressedBuf.remaining() < len) {
+        if (uncompressedDirectBuf.remaining() < len) {
             currentCompressedIndex = nextCompressedIndex;
-            uncompressedIndexs.add(uncompressedIndex);
-            compressedIndexs.add(currentCompressedIndex);
-            uncompressedBuf.flip();
-            compress(uncompressedBuf.array(), 0, uncompressedBuf.limit());
-            uncompressedBuf.clear();
+            uncompressedIndexes.add(uncompressedIndex);
+            compressedIndexes.add(currentCompressedIndex);
+            uncompressedDirectBuf.flip();
+
+            final int uncompressedBufLen = uncompressedDirectBuf.limit();
+            uncompressedDirectBuf.get(uncompressedBuf);
+            compress(uncompressedBuf, 0, uncompressedBufLen);
+            uncompressedDirectBuf.clear();
         } else {
-            uncompressedBuf.put(b, off, len);
+            uncompressedDirectBuf.put(b, off, len);
             uncompressedIndex += len;
         }
     }
@@ -146,6 +148,8 @@ public class CompressOutputStream extends FilterOutputStream implements
         ByteArrayOutputStream compressedIndexBytes = new ByteArrayOutputStream();
         ObjectOutputStream uncompressedIndexObj = new ObjectOutputStream(uncompressedIndexBytes);
         ObjectOutputStream compressedIndexObj = new ObjectOutputStream(compressedIndexBytes);
+        uncompressedIndexObj.writeObject(uncompressedIndexes);
+        compressedIndexObj.writeObject(compressedIndexes);
         setXAttrForFile(filePath, "user.uncompressedIndex", uncompressedIndexBytes.toByteArray());
         setXAttrForFile(filePath, "user.compressedIndex", compressedIndexBytes.toByteArray());
     }
