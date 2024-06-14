@@ -48,8 +48,10 @@ public class CompressOutputStream extends FilterOutputStream implements
     private final int bufferSize = 512;
     // TODO: This may lager than compressor buffer, check how to solve it.
     private final int compressSize = 256 * 1024;
+    private final String filePath;
+    private long originalIndex = 0;
+    private long compressedIndex = 0;
     private int currentSize = 0;
-
     /**
      * Input data buffer. The data starts at inBuffer.position() and ends at
      * inBuffer.limit().
@@ -66,18 +68,20 @@ public class CompressOutputStream extends FilterOutputStream implements
     private boolean closed;
     private boolean closeOutputStream;
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec) throws IOException {
-        this(out, codec, 0);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, String filePath) throws IOException {
+        this(out, codec, 0, filePath);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset) throws IOException {
-        this(out, codec, streamOffset, true);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, String filePath) throws IOException {
+        this(out, codec, streamOffset, true, filePath);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, boolean closeOutputStream) throws IOException {
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, boolean closeOutputStream, String filePath) throws IOException {
         super(out);
 //        this.bufferSize = CryptoStreamUtils.checkBufferSize(codec, bufferSize);
         this.codec = codec;
+        this.filePath = filePath;
+        System.out.println("FilePath:" + filePath);
         // inBuffer = ByteBuffer.allocateDirect(this.bufferSize);
         // outBuffer = ByteBuffer.allocateDirect(this.bufferSize);
         // this.streamOffset = streamOffset;
@@ -112,12 +116,40 @@ public class CompressOutputStream extends FilterOutputStream implements
         }
         compressor.write(b, off, len);
         currentSize += len;
+        originalIndex += len;
         if (currentSize >= compressSize) {
             compressor.finish();
-            compressor.resetState();
+            compressedIndex += currentSize;
             currentSize = 0;
+            writeIndex(originalIndex, compressedIndex);
         }
-        // writeIndex();
+    }
+
+    private void writeIndex(long originalIndex, long compressedIndex) throws IOException {
+        byte[] originalIndexBytes = ByteBuffer.allocate(8).putLong(originalIndex).array();
+        byte[] compressedIndexBytes = ByteBuffer.allocate(8).putLong(compressedIndex).array();
+        setXAttrForFile(filePath, "user.originalIndex", originalIndexBytes);
+        setXAttrForFile(filePath, "user.compressedIndex", compressedIndexBytes);
+    }
+
+    private void setXAttrForFile(String filePath, String xattrName, byte[] xattrValue) throws IOException {
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.get(conf);
+        Path path = new Path(filePath);
+
+        // Check if the file exists
+        if (!fs.exists(path)) {
+            throw new IOException("File does not exist: " + filePath);
+        }
+
+        // Check if the current user has the permission to set xattr
+        FsPermission permission = fs.getFileStatus(path).getPermission();
+        if (!permission.getUserAction().implies(FsAction.WRITE)) {
+            throw new IOException("The current user does not have the permission to set xattr for file: " + filePath);
+        }
+
+        // Set xattr for the file
+        fs.setXAttr(path, xattrName, xattrValue);
     }
 
     private byte[] tmpBuf;
