@@ -26,14 +26,16 @@ import org.apache.hadoop.fs.impl.StoreImplementationUtils;
 import org.apache.hadoop.fs.statistics.IOStatistics;
 import org.apache.hadoop.fs.statistics.IOStatisticsSource;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.CompressionOutputStream;
-// import org.apache.hadoop.io.compress.Compressor;
-// import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.compress.Compressor;
 
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 import static org.apache.hadoop.fs.statistics.IOStatisticsSupport.retrieveIOStatistics;
 
@@ -43,15 +45,20 @@ public class CompressOutputStream extends FilterOutputStream implements
         Syncable, CanSetDropBehind, StreamCapabilities, IOStatisticsSource {
     private final byte[] oneByteBuf = new byte[1];
     private final CompressionCodec codec;
-    // private final Compressor compressor;
-    private final CompressionOutputStream compressor;
-    private final int bufferSize = 512;
-    // TODO: This may lager than compressor buffer, check how to solve it.
-    private final int compressSize = 256 * 1024;
+    private final Compressor compressor;
+//    private final int compressSize;
+    private ByteBuffer uncompressedDirectBuf = null;
+    private byte[] uncompressedBuf;
+    private byte[] compressedBuf;
+//    private int uncompressedBufOff = 0;
+//    private int uncompressedBufLen = 0;
     private final String filePath;
-    private long originalIndex = 0;
-    private long compressedIndex = 0;
-    private int currentSize = 0;
+    private long currentUncompressedIndex = 0;
+    private long currentCompressedIndex = 0;
+    private long nextUncompressedIndex = 0;
+    private long nextCompressedIndex = 0;
+    private final ArrayList<Long> uncompressedIndexes = new ArrayList<>();
+    private final ArrayList<Long> compressedIndexes = new ArrayList<>();
     /**
      * Input data buffer. The data starts at inBuffer.position() and ends at
      * inBuffer.limit().
@@ -68,31 +75,34 @@ public class CompressOutputStream extends FilterOutputStream implements
     private boolean closed;
     private boolean closeOutputStream;
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, String filePath) throws IOException {
-        this(out, codec, 0, filePath);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, int compressSize, String filePath) throws IOException {
+        this(out, codec, 0, compressSize, filePath);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, String filePath) throws IOException {
-        this(out, codec, streamOffset, true, filePath);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, String filePath) throws IOException {
+        this(out, codec, streamOffset, compressSize, true, filePath);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, boolean closeOutputStream, String filePath) throws IOException {
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, String filePath) throws IOException {
         super(out);
-//        this.bufferSize = CryptoStreamUtils.checkBufferSize(codec, bufferSize);
+
+        if (out == null || codec == null) {
+            throw new NullPointerException();
+        } else if (compressSize <= 0) {
+            throw new IllegalArgumentException("Illegal compressSize");
+        }
+
         this.codec = codec;
         this.filePath = filePath;
         System.out.println("FilePath:" + filePath);
-        // inBuffer = ByteBuffer.allocateDirect(this.bufferSize);
-        // outBuffer = ByteBuffer.allocateDirect(this.bufferSize);
+//        this.compressSize = compressSize;
+        uncompressedDirectBuf = ByteBuffer.allocateDirect(compressSize);
+        uncompressedBuf = new byte[compressSize];
+        compressedBuf = new byte[compressSize];
+        compressor = codec.createCompressor();
+
         // this.streamOffset = streamOffset;
         this.closeOutputStream = closeOutputStream;
-        try {
-            compressor = codec.createOutputStream(out);
-        } catch (IOException e) {
-            throw new IOException(e);
-        }
-//        compressor = codec.createCompressor();
-//        updateCompressor();
     }
 
     public OutputStream getWrappedStream() {
@@ -108,28 +118,47 @@ public class CompressOutputStream extends FilterOutputStream implements
     @Override
     public synchronized void write(byte[] b, int off, int len) throws IOException {
         checkStream();
+
         if (b == null) {
             throw new NullPointerException();
         } else if (off < 0 || len < 0 || off > b.length ||
                 len > b.length - off) {
             throw new IndexOutOfBoundsException();
+        } else if (len == 0) {
+            return;
         }
-        compressor.write(b, off, len);
-        currentSize += len;
-        originalIndex += len;
-        if (currentSize >= compressSize) {
-            compressor.finish();
-            compressedIndex += currentSize;
-            currentSize = 0;
-            writeIndex(originalIndex, compressedIndex);
+
+        if (uncompressedDirectBuf.remaining() < len) {
+            addIndex();
+            uncompressedDirectBuf.flip();
+            final int uncompressedBufLen = uncompressedDirectBuf.limit();
+            currentUncompressedIndex += uncompressedBufLen;
+
+            uncompressedDirectBuf.get(uncompressedBuf);
+            compress(uncompressedBuf, 0, uncompressedBufLen);
+            uncompressedDirectBuf.clear();
         }
+        uncompressedDirectBuf.put(b, off, len);
     }
 
-    private void writeIndex(long originalIndex, long compressedIndex) throws IOException {
-        byte[] originalIndexBytes = ByteBuffer.allocate(8).putLong(originalIndex).array();
-        byte[] compressedIndexBytes = ByteBuffer.allocate(8).putLong(compressedIndex).array();
-        setXAttrForFile(filePath, "user.originalIndex", originalIndexBytes);
-        setXAttrForFile(filePath, "user.compressedIndex", compressedIndexBytes);
+    private void addIndex() {
+        uncompressedIndexes.add(currentUncompressedIndex);
+        compressedIndexes.add(currentCompressedIndex);
+    }
+
+    private void writeIndex() throws IOException {
+        for(int i = 0; i < uncompressedIndexes.size(); i++) {
+            System.out.println("Uncompressed Index: " + uncompressedIndexes.get(i) + " Compressed Index: " + compressedIndexes.get(i));
+        }
+
+        ByteArrayOutputStream uncompressedIndexBytes = new ByteArrayOutputStream();
+        ByteArrayOutputStream compressedIndexBytes = new ByteArrayOutputStream();
+        ObjectOutputStream uncompressedIndexObj = new ObjectOutputStream(uncompressedIndexBytes);
+        ObjectOutputStream compressedIndexObj = new ObjectOutputStream(compressedIndexBytes);
+        uncompressedIndexObj.writeObject(uncompressedIndexes);
+        compressedIndexObj.writeObject(compressedIndexes);
+        setXAttrForFile(filePath, "user.uncompressedIndex", uncompressedIndexBytes.toByteArray());
+        setXAttrForFile(filePath, "user.compressedIndex", compressedIndexBytes.toByteArray());
     }
 
     private void setXAttrForFile(String filePath, String xattrName, byte[] xattrValue) throws IOException {
@@ -152,12 +181,23 @@ public class CompressOutputStream extends FilterOutputStream implements
         fs.setXAttr(path, xattrName, xattrValue);
     }
 
-    private byte[] tmpBuf;
-    private byte[] getTmpBuf() {
-        if (tmpBuf == null) {
-            tmpBuf = new byte[bufferSize];
+    public void compress(byte[] b, int off, int len) throws IOException {
+        // Sanity checks
+        if (compressor.finished()) {
+            throw new IOException("write beyond end of stream");
         }
-        return tmpBuf;
+        if ((off | len | (off + len) | (b.length - (off + len))) < 0) {
+            throw new IndexOutOfBoundsException();
+        } else if (len == 0) {
+            return;
+        }
+
+        compressor.setInput(b, off, len);
+        int compressedLen = 0;
+        while ((compressedLen = compressor.compress(compressedBuf, 0, compressedBuf.length)) > 0) {
+            out.write(compressedBuf, 0, compressedLen);
+            currentCompressedIndex += compressedLen;
+        }
     }
 
     @Override
@@ -170,8 +210,6 @@ public class CompressOutputStream extends FilterOutputStream implements
                 flush();
             } finally {
                 if (closeOutputStream) {
-                    compressor.close();
-//                    compressor.finish();
                     super.close();
                 }
 //                freeBuffers();
@@ -190,7 +228,25 @@ public class CompressOutputStream extends FilterOutputStream implements
         if (closed) {
             return;
         }
-        compressor.flush();
+        if (uncompressedDirectBuf.remaining() > 0) {
+            addIndex();
+            uncompressedDirectBuf.flip();
+            final int uncompressedBufLen = uncompressedDirectBuf.limit();
+            currentUncompressedIndex += uncompressedBufLen;
+
+            uncompressedDirectBuf.get(uncompressedBuf);
+            compress(uncompressedBuf, 0, uncompressedBufLen);
+        }
+//        compressor.finish();
+//        while (!compressor.finished()) {
+//            int compressedLen = 0;
+//            while ((compressedLen = compressor.compress(compressedBuf, 0, compressedBuf.length)) > 0) {
+//                out.write(compressedBuf, 0, compressedLen);
+//                currentCompressedIndex += compressedLen;
+//            }
+//        }
+        addIndex();
+        writeIndex();
         super.flush();
     }
 
