@@ -52,7 +52,9 @@ public class CompressOutputStream extends FilterOutputStream implements
     private byte[] compressedBuf;
 //    private int uncompressedBufOff = 0;
 //    private int uncompressedBufLen = 0;
-    private final String filePath;
+
+    // for xattr:
+    CompressIndexWriter indexWriter;
     private long currentUncompressedIndex = 0;
     private long currentCompressedIndex = 0;
     private long nextUncompressedIndex = 0;
@@ -75,26 +77,24 @@ public class CompressOutputStream extends FilterOutputStream implements
     private boolean closed;
     private boolean closeOutputStream;
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, int compressSize, String filePath) throws IOException {
-        this(out, codec, 0, compressSize, filePath);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, int compressSize, CompressIndexWriter compressIndexWriter) throws IOException {
+        this(out, codec, 0, compressSize, compressIndexWriter);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, String filePath) throws IOException {
-        this(out, codec, streamOffset, compressSize, true, filePath);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter) throws IOException {
+        this(out, codec, streamOffset, compressSize, true, compressIndexWriter);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, String filePath) throws IOException {
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter) throws IOException {
         super(out);
 
-        if (out == null || codec == null) {
+        if (out == null || codec == null || compressIndexWriter == null) {
             throw new NullPointerException();
         } else if (compressSize <= 0) {
             throw new IllegalArgumentException("Illegal compressSize");
         }
 
         this.codec = codec;
-        this.filePath = filePath;
-        System.out.println("FilePath:" + filePath);
 //        this.compressSize = compressSize;
         uncompressedDirectBuf = ByteBuffer.allocateDirect(compressSize);
         uncompressedBuf = new byte[compressSize];
@@ -103,6 +103,9 @@ public class CompressOutputStream extends FilterOutputStream implements
 
         // this.streamOffset = streamOffset;
         this.closeOutputStream = closeOutputStream;
+
+        // for xattr:
+        this.indexWriter = compressIndexWriter;
     }
 
     public OutputStream getWrappedStream() {
@@ -144,41 +147,6 @@ public class CompressOutputStream extends FilterOutputStream implements
     private void addIndex() {
         uncompressedIndexes.add(currentUncompressedIndex);
         compressedIndexes.add(currentCompressedIndex);
-    }
-
-    private void writeIndex() throws IOException {
-        for(int i = 0; i < uncompressedIndexes.size(); i++) {
-            System.out.println("Uncompressed Index: " + uncompressedIndexes.get(i) + " Compressed Index: " + compressedIndexes.get(i));
-        }
-
-        ByteArrayOutputStream uncompressedIndexBytes = new ByteArrayOutputStream();
-        ByteArrayOutputStream compressedIndexBytes = new ByteArrayOutputStream();
-        ObjectOutputStream uncompressedIndexObj = new ObjectOutputStream(uncompressedIndexBytes);
-        ObjectOutputStream compressedIndexObj = new ObjectOutputStream(compressedIndexBytes);
-        uncompressedIndexObj.writeObject(uncompressedIndexes);
-        compressedIndexObj.writeObject(compressedIndexes);
-        setXAttrForFile(filePath, "user.uncompressedIndex", uncompressedIndexBytes.toByteArray());
-        setXAttrForFile(filePath, "user.compressedIndex", compressedIndexBytes.toByteArray());
-    }
-
-    private void setXAttrForFile(String filePath, String xattrName, byte[] xattrValue) throws IOException {
-        Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        Path path = new Path(filePath);
-
-        // Check if the file exists
-        if (!fs.exists(path)) {
-            throw new IOException("File does not exist: " + filePath);
-        }
-
-        // Check if the current user has the permission to set xattr
-        FsPermission permission = fs.getFileStatus(path).getPermission();
-        if (!permission.getUserAction().implies(FsAction.WRITE)) {
-            throw new IOException("The current user does not have the permission to set xattr for file: " + filePath);
-        }
-
-        // Set xattr for the file
-        fs.setXAttr(path, xattrName, xattrValue);
     }
 
     public void compress(byte[] b, int off, int len) throws IOException {
@@ -246,7 +214,7 @@ public class CompressOutputStream extends FilterOutputStream implements
 //            }
 //        }
         addIndex();
-        writeIndex();
+        indexWriter.writeIndex(uncompressedIndexes, compressedIndexes);
         super.flush();
     }
 
