@@ -79,7 +79,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
    */
   private ByteBuffer outBuffer;
   private byte[] outBufferArray;
-  private long streamOffset = 0; // Underlying stream offset.
+//  private long streamOffset = 0; // Underlying stream offset.
   /**
    * Whether the underlying stream supports
    * {@link org.apache.hadoop.fs.ByteBufferReadable}
@@ -111,7 +111,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     super(in);
     this.bufferSize = bufferSize;
     this.codec = codec;
-    this.streamOffset = streamOffset;
+//    this.streamOffset = streamOffset;
     isByteBufferReadable = in instanceof ByteBufferReadable;
     isReadableByteChannel = in instanceof ReadableByteChannel;
     inBuffer = ByteBuffer.allocateDirect(this.bufferSize);
@@ -124,12 +124,26 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     resetStreamOffset(streamOffset);
   }
 
-  private void resetStreamOffset(long streamOffset) {
+  private void resetStreamOffset(long streamOffset) throws IOException {
     // find out the streamOffset is between which two uncompressedIndexes
-    int i = 0;
-    while (i < uncompressedIndexes.size() && uncompressedIndexes.get(i) < streamOffset) {
-      i++;
+//    this.streamOffset = streamOffset;
+
+    currentCompressedIndex = getCompressedIndexBefore(streamOffset);
+    currentUncompressedIndex = getUncompressedIndexBefore(currentCompressedIndex);
+    final int pos = (int) (streamOffset - currentUncompressedIndex);
+    try {
+      ((Seekable) in).seek(currentCompressedIndex);
+    } catch (IOException e) {
+      throw new RuntimeException("Error seeking to position: " + currentCompressedIndex);
     }
+    int n = readAndDecompress();
+    if (n <= 0) {
+//      this.streamOffset = currentUncompressedIndex;
+      outBuffer.limit(0);
+    } else {
+      outBuffer.position(pos);
+    }
+//    currentUncompressedIndex = streamOffset;
   }
 
   private void getIndexes(byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
@@ -170,6 +184,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     while (i < compressedIndexes.size() && compressedIndex >= compressedIndexes.get(i)) {
       i++;
     }
+    if(i>=uncompressedIndexes.size())
+      return -1;
     return uncompressedIndexes.get(i);
   }
 
@@ -179,6 +195,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     while (i < uncompressedIndexes.size() && uncompressedIndex >= uncompressedIndexes.get(i)) {
       i++;
     }
+    if(i>=uncompressedIndexes.size())
+      return -1;
     return compressedIndexes.get(i);
   }
 
@@ -193,7 +211,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
    * @return int the total number of decompressed data bytes read into the buffer.
    * @throws IOException raised on errors performing I/O.
    */
-  //@Override
+  @Override
   public int read(byte[] b, int off, int len) throws IOException {
     checkStream();
     if (b == null) {
@@ -211,48 +229,9 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       return n;
     } else {
       int n = 0;
-
-      /*
-       * Check whether the underlying stream is {@link ByteBufferReadable},
-       * it can avoid bytes copy.
-       */
-      // Set inBuffer limit to next compressed index
-      final int toRead = (int) (getCompressedIndexAfter(currentUncompressedIndex) - currentCompressedIndex);
-      if (toRead > 0) {
-        inBuffer.clear();
-        inBuffer.limit(toRead);
-      }
-
-      if (usingByteBufferRead == null) {
-        if (isByteBufferReadable || isReadableByteChannel) {
-          try {
-            n = isByteBufferReadable ?
-                    ((ByteBufferReadable) in).read(inBuffer) :
-                    ((ReadableByteChannel) in).read(inBuffer);
-            usingByteBufferRead = Boolean.TRUE;
-          } catch (UnsupportedOperationException e) {
-            usingByteBufferRead = Boolean.FALSE;
-          }
-        } else {
-          usingByteBufferRead = Boolean.FALSE;
-        }
-        if (!usingByteBufferRead) {
-          n = readFromUnderlyingStream(inBuffer, toRead);
-        }
-      } else {
-        if (usingByteBufferRead) {
-          n = isByteBufferReadable ? ((ByteBufferReadable) in).read(inBuffer) :
-                  ((ReadableByteChannel) in).read(inBuffer);
-        } else {
-          n = readFromUnderlyingStream(inBuffer, toRead);
-        }
-      }
-      if (n <= 0) {
+      if ((n = readAndDecompress()) <= 0) {
         return n;
       }
-
-      streamOffset += n; // Read n bytes
-      decompress(decompressor, inBuffer, outBuffer, (byte) 0);
 //      padding = afterDecryption(decompressor, inBuffer, streamOffset, iv);
       n = Math.min(len, outBuffer.remaining());
       outBuffer.get(b, off, n);
@@ -260,10 +239,71 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
   }
 
+  /*
+   * Read a whole segment that can be decompressed and decompressed into buffer
+   */
+  private int readAndDecompress() throws IOException {
+    int n = 0;
+
+    inBuffer.clear();
+    outBuffer.clear();
+    // Set inBuffer limit to next compressed index
+    final int toRead = (int) (getCompressedIndexAfter(currentUncompressedIndex) - currentCompressedIndex);
+    if (toRead > 0) {
+      inBuffer.limit(toRead);
+    }
+
+    /*
+     * Check whether the underlying stream is {@link ByteBufferReadable},
+     * it can avoid bytes copy.
+     */
+    if (usingByteBufferRead == null) {
+      if (isByteBufferReadable || isReadableByteChannel) {
+        try {
+          while (n>=0 && inBuffer.hasRemaining()) {
+            n += isByteBufferReadable ?
+                    ((ByteBufferReadable) in).read(inBuffer) :
+                    ((ReadableByteChannel) in).read(inBuffer);
+          }
+          usingByteBufferRead = Boolean.TRUE;
+        } catch (UnsupportedOperationException e) {
+          usingByteBufferRead = Boolean.FALSE;
+        }
+      } else {
+        usingByteBufferRead = Boolean.FALSE;
+      }
+      if (!usingByteBufferRead) {
+        n = readFromUnderlyingStream(inBuffer, toRead);
+      }
+    } else {
+      if (usingByteBufferRead) {
+        while (n>=0 && inBuffer.hasRemaining()) {
+          n += isByteBufferReadable ? ((ByteBufferReadable) in).read(inBuffer) :
+                  ((ReadableByteChannel) in).read(inBuffer);
+        }
+      } else {
+        n = readFromUnderlyingStream(inBuffer, toRead);
+      }
+    }
+    if (n <= 0) {
+      return n;
+    }
+
+//    streamOffset += n; // Read n bytes
+    decompress(decompressor, inBuffer, outBuffer, (byte) 0);
+    return n;
+  }
+
   /** Read data from underlying stream. */
   private int readFromUnderlyingStream(ByteBuffer inBuffer, int toRead) throws IOException {
+    if(toRead <= 0) {
+      return 0;
+    }
     final byte[] tmp = getTmpBuf();
-    final int n = in.read(tmp, 0, toRead);
+    int n = 0;
+    while (n>=0 && inBuffer.hasRemaining()) {
+      n += in.read(tmp, 0, toRead);
+    }
     if (n > 0) {
       inBuffer.put(tmp, 0, n);
     }
@@ -299,6 +339,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     outBuffer.put(outBufferArray, 0, uncompressedBytes);
     inBuffer.clear();
     outBuffer.flip();
+    currentUncompressedIndex += uncompressedBytes;
+    currentCompressedIndex += compressedBytes;
 //    if (padding > 0) {
 //      /*
 //       * The plain text and cipher text have a 1:1 mapping, they start at the
@@ -343,21 +385,6 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    final long counter = getCounter(position);
 //    codec.calculateIV(initIV, counter, iv);
 //    decompressor.init(key, iv);
-//  }
-
-//  /**
-//   * Reset the underlying stream offset; clear {@link #inBuffer} and
-//   * {@link #outBuffer}. This Typically happens during {@link #seek(long)}
-//   * or {@link #skip(long)}.
-//   */
-//  private void resetStreamOffset(long offset) throws IOException {
-//    streamOffset = offset;
-//    inBuffer.clear();
-//    outBuffer.clear();
-//    outBuffer.limit(0);
-//    updateCompressionInputStream(decompressor, offset, iv);
-//    padding = getPadding(offset);
-//    inBuffer.position(padding); // Set proper position for input data.
 //  }
 
   //@Override
@@ -580,7 +607,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
         throw new UnsupportedOperationException(in.getClass().getCanonicalName()
                 + " does not support seek.");
       }
-      ((Seekable) in).seek(getCompressedIndexBefore(pos));
+//      ((Seekable) in).seek(pos);
       resetStreamOffset(pos);
     }
   }
@@ -605,14 +632,9 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
        * number of skipped bytes from the user's point of view.
        */
       n -= outBuffer.remaining();
-      long skipped = in.skip(n);
-      if (skipped < 0) {
-        skipped = 0;
-      }
-      long pos = streamOffset + skipped;
-      skipped += outBuffer.remaining();
-//      resetStreamOffset(pos);
-      return skipped;
+      final long currentStreamOffset = currentUncompressedIndex - outBuffer.remaining();
+      resetStreamOffset(currentUncompressedIndex + n);
+      return currentUncompressedIndex - outBuffer.remaining() - currentStreamOffset;
     }
   }
 
@@ -621,7 +643,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   public long getPos() throws IOException {
     checkStream();
     // Equals: ((Seekable) in).getPos() - outBuffer.remaining()
-    return streamOffset - outBuffer.remaining();
+    return currentUncompressedIndex - outBuffer.remaining();
   }
 //
 //  /** ByteBuffer read. */
