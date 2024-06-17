@@ -173,6 +173,7 @@ import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.compress.Lz4Codec;
 import org.apache.hadoop.io.compress.bzip2.Bzip2Factory;
@@ -976,11 +977,12 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     } else {
       // No FileEncryptionInfo so no encryption.
 //      return new HdfsDataInputStream(dfsis);
+      final int compressSize = conf.getInt("io.compression.codec.snappy.buffersize", 256 * 1024);
       try {
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress.SnappyCodec"), conf);
         final CompressInputStream compressIn =
-                new CompressInputStream(dfsis, codec);
+                new CompressInputStream(dfsis, codec, compressSize, dfsis.getSrc());
         return new HdfsDataInputStream(compressIn);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
