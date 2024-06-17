@@ -146,10 +146,10 @@ public class CompressOutputStream extends FilterOutputStream implements
         if (uncompressedDirectBuf.remaining() < len) {
             addIndex();
             uncompressedDirectBuf.flip();
-            final int uncompressedBufLen = uncompressedDirectBuf.limit();
+            final int uncompressedBufLen = uncompressedDirectBuf.remaining();
             currentUncompressedIndex += uncompressedBufLen;
 
-            uncompressedDirectBuf.get(uncompressedBuf);
+            uncompressedDirectBuf.get(uncompressedBuf, 0, uncompressedBufLen);
             compress(uncompressedBuf, 0, uncompressedBufLen);
             uncompressedDirectBuf.clear();
         }
@@ -223,14 +223,15 @@ public class CompressOutputStream extends FilterOutputStream implements
         if (closed) {
             return;
         }
+        uncompressedDirectBuf.flip();
         if (uncompressedDirectBuf.remaining() > 0) {
             addIndex();
-            uncompressedDirectBuf.flip();
-            final int uncompressedBufLen = uncompressedDirectBuf.limit();
+            final int uncompressedBufLen = uncompressedDirectBuf.remaining();
             currentUncompressedIndex += uncompressedBufLen;
 
-            uncompressedDirectBuf.get(uncompressedBuf);
+            uncompressedDirectBuf.get(uncompressedBuf, 0, uncompressedBufLen);
             compress(uncompressedBuf, 0, uncompressedBufLen);
+            uncompressedDirectBuf.clear();
         }
 //        compressor.finish();
 //        while (!compressor.finished()) {
