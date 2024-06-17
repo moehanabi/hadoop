@@ -52,7 +52,11 @@ public class CompressOutputStream extends FilterOutputStream implements
     private byte[] compressedBuf;
 //    private int uncompressedBufOff = 0;
 //    private int uncompressedBufLen = 0;
-    private final String filePath;
+
+    // for xattr:
+    private Configuration fsConf = new Configuration();
+    private FileSystem fs = FileSystem.get(fsConf);
+    Path path;
     private long currentUncompressedIndex = 0;
     private long currentCompressedIndex = 0;
     private long nextUncompressedIndex = 0;
@@ -86,15 +90,13 @@ public class CompressOutputStream extends FilterOutputStream implements
     public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, String filePath) throws IOException {
         super(out);
 
-        if (out == null || codec == null) {
+        if (out == null || codec == null || filePath == null) {
             throw new NullPointerException();
         } else if (compressSize <= 0) {
             throw new IllegalArgumentException("Illegal compressSize");
         }
 
         this.codec = codec;
-        this.filePath = filePath;
-        System.out.println("FilePath:" + filePath);
 //        this.compressSize = compressSize;
         uncompressedDirectBuf = ByteBuffer.allocateDirect(compressSize);
         uncompressedBuf = new byte[compressSize];
@@ -103,6 +105,19 @@ public class CompressOutputStream extends FilterOutputStream implements
 
         // this.streamOffset = streamOffset;
         this.closeOutputStream = closeOutputStream;
+
+        // for xattr:
+        System.out.println("FilePath:" + filePath);
+        path = new Path(filePath);
+        // Check if the file exists
+        if (!fs.exists(path)) {
+            throw new IOException("File does not exist: " + filePath);
+        }
+        // Check if the current user has the permission to set xattr
+        FsPermission permission = fs.getFileStatus(path).getPermission();
+        if (!permission.getUserAction().implies(FsAction.WRITE)) {
+            throw new IOException("The current user does not have the permission to set xattr for file: " + filePath);
+        }
     }
 
     public OutputStream getWrappedStream() {
@@ -157,28 +172,8 @@ public class CompressOutputStream extends FilterOutputStream implements
         ObjectOutputStream compressedIndexObj = new ObjectOutputStream(compressedIndexBytes);
         uncompressedIndexObj.writeObject(uncompressedIndexes);
         compressedIndexObj.writeObject(compressedIndexes);
-        setXAttrForFile(filePath, "user.uncompressedIndex", uncompressedIndexBytes.toByteArray());
-        setXAttrForFile(filePath, "user.compressedIndex", compressedIndexBytes.toByteArray());
-    }
-
-    private void setXAttrForFile(String filePath, String xattrName, byte[] xattrValue) throws IOException {
-        Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        Path path = new Path(filePath);
-
-        // Check if the file exists
-        if (!fs.exists(path)) {
-            throw new IOException("File does not exist: " + filePath);
-        }
-
-        // Check if the current user has the permission to set xattr
-        FsPermission permission = fs.getFileStatus(path).getPermission();
-        if (!permission.getUserAction().implies(FsAction.WRITE)) {
-            throw new IOException("The current user does not have the permission to set xattr for file: " + filePath);
-        }
-
-        // Set xattr for the file
-        fs.setXAttr(path, xattrName, xattrValue);
+        fs.setXAttr(path, "user.uncompressedIndex", uncompressedIndexBytes.toByteArray());
+        fs.setXAttr(path, "user.compressedIndex", compressedIndexBytes.toByteArray());
     }
 
     public void compress(byte[] b, int off, int len) throws IOException {
