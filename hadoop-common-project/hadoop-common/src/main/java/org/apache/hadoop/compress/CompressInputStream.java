@@ -200,6 +200,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     while (i < compressedIndexes.size() && compressedIndex >= compressedIndexes.get(i)) {
       i++;
     }
+    if(i>=uncompressedIndexes.size())
+      return -1;
     return uncompressedIndexes.get(i);
   }
 
@@ -208,6 +210,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     while (i < uncompressedIndexes.size() && uncompressedIndex >= uncompressedIndexes.get(i)) {
       i++;
     }
+    if(i>=uncompressedIndexes.size())
+      return -1;
     return compressedIndexes.get(i);
   }
 
@@ -255,9 +259,11 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       if (usingByteBufferRead == null) {
         if (isByteBufferReadable || isReadableByteChannel) {
           try {
-            n = isByteBufferReadable ?
-                    ((ByteBufferReadable) in).read(inBuffer) :
-                    ((ReadableByteChannel) in).read(inBuffer);
+            while (n>=0 && inBuffer.hasRemaining()) {
+              n += isByteBufferReadable ?
+                      ((ByteBufferReadable) in).read(inBuffer) :
+                      ((ReadableByteChannel) in).read(inBuffer);
+            }
             usingByteBufferRead = Boolean.TRUE;
           } catch (UnsupportedOperationException e) {
             usingByteBufferRead = Boolean.FALSE;
@@ -270,8 +276,10 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
         }
       } else {
         if (usingByteBufferRead) {
-          n = isByteBufferReadable ? ((ByteBufferReadable) in).read(inBuffer) :
-                  ((ReadableByteChannel) in).read(inBuffer);
+          while (n>=0 && inBuffer.hasRemaining()) {
+            n += isByteBufferReadable ? ((ByteBufferReadable) in).read(inBuffer) :
+                    ((ReadableByteChannel) in).read(inBuffer);
+          }
         } else {
           n = readFromUnderlyingStream(inBuffer, toRead);
         }
@@ -292,7 +300,10 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   /** Read data from underlying stream. */
   private int readFromUnderlyingStream(ByteBuffer inBuffer, int toRead) throws IOException {
     final byte[] tmp = getTmpBuf();
-    final int n = in.read(tmp, 0, toRead);
+    int n = 0;
+    while (n>=0 && inBuffer.hasRemaining()) {
+      n += in.read(tmp, 0, toRead);
+    }
     if (n > 0) {
       inBuffer.put(tmp, 0, n);
     }
@@ -328,6 +339,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     outBuffer.put(outBufferArray, 0, uncompressedBytes);
     inBuffer.clear();
     outBuffer.flip();
+    currentUncompressedIndex += uncompressedBytes;
+    currentCompressedIndex += compressedBytes;
 //    if (padding > 0) {
 //      /*
 //       * The plain text and cipher text have a 1:1 mapping, they start at the
