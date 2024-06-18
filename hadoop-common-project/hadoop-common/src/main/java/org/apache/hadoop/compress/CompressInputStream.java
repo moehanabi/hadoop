@@ -126,17 +126,13 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 
   private void resetStreamOffset(long streamOffset) {
     // find out the streamOffset is between which two uncompressedIndexes
-    int i = 0;
-    while (i < uncompressedIndexes.size() && streamOffset >= uncompressedIndexes.get(i)) {
-      i++;
-    }
-    streamOffset = uncompressedIndexes.get(i - 1);
+    streamOffset = getUncompressedIndexBefore(streamOffset);
 
     inBuffer.clear();
     outBuffer.clear();
     outBuffer.limit(0);
     currentUncompressedIndex = streamOffset;
-    currentCompressedIndex = compressedIndexes.get(i - 1);
+    currentCompressedIndex = getCompressedIndexBefore(streamOffset);
     try {
       ((Seekable) in).seek(currentCompressedIndex);
     } catch (IOException e) {
