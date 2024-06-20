@@ -102,12 +102,12 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   private long currentCompressedIndex = 0;
 
   public CompressInputStream(InputStream in, CompressionCodec codec,
-                           int bufferSize, String filePath) throws IOException {
-    this(in, codec, bufferSize, 0, filePath);
+                           int bufferSize, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
+    this(in, codec, bufferSize, 0, uncompressedIndexesBytes, compressedIndexesBytes);
   }
 
   public CompressInputStream(InputStream in, CompressionCodec codec,
-                             int bufferSize, long streamOffset, String filePath) throws IOException {
+                             int bufferSize, long streamOffset, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
     super(in);
     this.bufferSize = bufferSize;
     this.codec = codec;
@@ -120,7 +120,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     outBufferArray = new byte[this.bufferSize];
     decompressor = getDecompressor();
 
-    getIndexes(filePath);
+    getIndexes(uncompressedIndexesBytes, compressedIndexesBytes);
     resetStreamOffset(streamOffset);
   }
 
@@ -144,35 +144,14 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    currentUncompressedIndex = streamOffset;
   }
 
-  private void getIndexes(String filePath) throws IOException {
+  private void getIndexes(byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
     // Get uncompressedIndexes and compressedIndexes from xattr
-    byte[] uncompressedIndexesBytes = getXAttrForFile(filePath, "user.uncompressedIndex");
-    byte[] compressedIndexesBytes = getXAttrForFile(filePath, "user.compressedIndex");
     try {
       uncompressedIndexes = (ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(uncompressedIndexesBytes)).readObject();
       compressedIndexes = (ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(compressedIndexesBytes)).readObject();
     } catch (ClassNotFoundException e) {
-      throw new IOException("Error reading xattr for file: " + filePath);
+      throw new IOException("Error reading xattr for file");
     }
-  }
-
-  private byte[] getXAttrForFile(String filePath, String xattrName) throws IOException {
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-    Path path = new Path(filePath);
-
-    // Check if the file exists
-    if (!fs.exists(path)) {
-      throw new IOException("File does not exist: " + filePath);
-    }
-
-    // Check if the current user has the permission to set xattr
-    FsPermission permission = fs.getFileStatus(path).getPermission();
-    if (!permission.getUserAction().implies(FsAction.WRITE)) {
-      throw new IOException("The current user does not have the permission to set xattr for file: " + filePath);
-    }
-
-    return fs.getXAttr(path, xattrName);
   }
 
   public InputStream getWrappedStream() {

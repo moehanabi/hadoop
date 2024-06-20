@@ -982,7 +982,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress.SnappyCodec"), conf);
         final CompressInputStream compressIn =
-                new CompressInputStream(dfsis, codec, compressSize, dfsis.getSrc());
+                new CompressInputStream(dfsis, codec, compressSize, getXAttr(dfsis.getSrc(), "user.uncompressedIndex"), getXAttr(dfsis.getSrc(), "user.compressedIndex"));
         return new HdfsDataInputStream(compressIn);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
