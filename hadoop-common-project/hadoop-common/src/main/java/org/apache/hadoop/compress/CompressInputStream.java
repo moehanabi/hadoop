@@ -79,7 +79,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
    */
   private ByteBuffer outBuffer;
   private byte[] outBufferArray;
-  private long streamOffset = 0; // Underlying stream offset.
+//  private long streamOffset = 0; // Underlying stream offset.
   /**
    * Whether the underlying stream supports
    * {@link org.apache.hadoop.fs.ByteBufferReadable}
@@ -111,7 +111,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     super(in);
     this.bufferSize = bufferSize;
     this.codec = codec;
-    this.streamOffset = streamOffset;
+//    this.streamOffset = streamOffset;
     isByteBufferReadable = in instanceof ByteBufferReadable;
     isReadableByteChannel = in instanceof ReadableByteChannel;
     inBuffer = ByteBuffer.allocateDirect(this.bufferSize);
@@ -126,7 +126,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 
   private void resetStreamOffset(long streamOffset) throws IOException {
     // find out the streamOffset is between which two uncompressedIndexes
-    this.streamOffset = streamOffset;
+//    this.streamOffset = streamOffset;
 
     currentCompressedIndex = getCompressedIndexBefore(streamOffset);
     currentUncompressedIndex = getUncompressedIndexBefore(currentCompressedIndex);
@@ -138,7 +138,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
     int n = readAndDecompress();
     if (n <= 0) {
-      this.streamOffset = currentUncompressedIndex;
+//      this.streamOffset = currentUncompressedIndex;
       outBuffer.limit(0);
     } else {
       outBuffer.position(pos);
@@ -285,7 +285,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       return n;
     }
 
-    streamOffset += n; // Read n bytes
+//    streamOffset += n; // Read n bytes
     decompress(decompressor, inBuffer, outBuffer, (byte) 0);
     return n;
   }
@@ -381,21 +381,6 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    final long counter = getCounter(position);
 //    codec.calculateIV(initIV, counter, iv);
 //    decompressor.init(key, iv);
-//  }
-
-//  /**
-//   * Reset the underlying stream offset; clear {@link #inBuffer} and
-//   * {@link #outBuffer}. This Typically happens during {@link #seek(long)}
-//   * or {@link #skip(long)}.
-//   */
-//  private void resetStreamOffset(long offset) throws IOException {
-//    streamOffset = offset;
-//    inBuffer.clear();
-//    outBuffer.clear();
-//    outBuffer.limit(0);
-//    updateCompressionInputStream(decompressor, offset, iv);
-//    padding = getPadding(offset);
-//    inBuffer.position(padding); // Set proper position for input data.
 //  }
 
   //@Override
@@ -643,9 +628,9 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
        * number of skipped bytes from the user's point of view.
        */
       n -= outBuffer.remaining();
-      final long currentStreamOffset = streamOffset;
+      final long currentStreamOffset = currentUncompressedIndex - outBuffer.remaining();
       resetStreamOffset(currentUncompressedIndex + n);
-      return streamOffset - currentStreamOffset;
+      return currentUncompressedIndex - outBuffer.remaining() - currentStreamOffset;
     }
   }
 
@@ -654,7 +639,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   public long getPos() throws IOException {
     checkStream();
     // Equals: ((Seekable) in).getPos() - outBuffer.remaining()
-    return streamOffset - outBuffer.remaining();
+    return currentUncompressedIndex - outBuffer.remaining();
   }
 //
 //  /** ByteBuffer read. */
