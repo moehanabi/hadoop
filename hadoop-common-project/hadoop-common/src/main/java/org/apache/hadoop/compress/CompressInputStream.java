@@ -138,9 +138,11 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
     int n = readAndDecompress();
     if (n <= 0) {
-      this.streamOffset = currentCompressedIndex;
+      this.streamOffset = currentUncompressedIndex;
+      outBuffer.limit(0);
+    } else {
+      outBuffer.position(pos);
     }
-    outBuffer.position(pos);
 //    currentUncompressedIndex = streamOffset;
   }
 
@@ -290,6 +292,9 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 
   /** Read data from underlying stream. */
   private int readFromUnderlyingStream(ByteBuffer inBuffer, int toRead) throws IOException {
+    if(toRead <= 0) {
+      return 0;
+    }
     final byte[] tmp = getTmpBuf();
     int n = 0;
     while (n>=0 && inBuffer.hasRemaining()) {
