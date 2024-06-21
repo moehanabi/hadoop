@@ -28,10 +28,7 @@ import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_SERV
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_TEST_DROP_NAMENODE_RESPONSE_NUM_DEFAULT;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_TEST_DROP_NAMENODE_RESPONSE_NUM_KEY;
 
-import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -57,6 +54,7 @@ import javax.net.SocketFactory;
 
 import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.compress.CompressIndexWriter;
 import org.apache.hadoop.compress.CompressInputStream;
 import org.apache.hadoop.compress.CompressOutputStream;
 import org.apache.hadoop.conf.Configuration;
@@ -1030,11 +1028,32 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
 //      ZlibFactory.setCompressionLevel(conf, ZlibCompressor.CompressionLevel.BEST_COMPRESSION);
 //      ZlibFactory.setNativeZlibLoaded(false);
       final int compressSize = conf.getInt("io.compression.codec.snappy.buffersize", 256 * 1024);
+      class ClientCompressIndexWriter implements CompressIndexWriter {
+
+        @Override
+        public void writeIndex(ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException {
+          for(int i = 0; i < uncompressedIndexes.size(); i++) {
+            System.out.println("Uncompressed Index: " + uncompressedIndexes.get(i) + " Compressed Index: " + compressedIndexes.get(i));
+          }
+
+          ByteArrayOutputStream uncompressedIndexBytes = new ByteArrayOutputStream();
+          ByteArrayOutputStream compressedIndexBytes = new ByteArrayOutputStream();
+          ObjectOutputStream uncompressedIndexObj = new ObjectOutputStream(uncompressedIndexBytes);
+          ObjectOutputStream compressedIndexObj = new ObjectOutputStream(compressedIndexBytes);
+          uncompressedIndexObj.writeObject(uncompressedIndexes);
+          compressedIndexObj.writeObject(compressedIndexes);
+          EnumSet<XAttrSetFlag> flag = EnumSet.of(XAttrSetFlag.CREATE, XAttrSetFlag.REPLACE);
+          setXAttr(dfsos.getSrc(), "user.uncompressedIndex", uncompressedIndexBytes.toByteArray(), flag);
+          setXAttr(dfsos.getSrc(), "user.compressedIndex", compressedIndexBytes.toByteArray(), flag);
+        }
+      }
+
       try {
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress.SnappyCodec"), conf);
+        final ClientCompressIndexWriter compressIndexWriter = new ClientCompressIndexWriter();
         final CompressOutputStream compressOut =
-                new CompressOutputStream(dfsos, codec, compressSize, dfsos.getSrc());
+                new CompressOutputStream(dfsos, codec, compressSize, compressIndexWriter);
         return new HdfsDataOutputStream(compressOut, statistics, startPos);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
