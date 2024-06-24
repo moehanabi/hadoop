@@ -409,12 +409,30 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       throw new UnsupportedOperationException(in.getClass().getCanonicalName()
               + " does not support positioned read.");
     }
-    final int n = ((PositionedReadable) in).read(position, buffer, offset,
-            length);
-    if (n > 0) {
-      // This operation does not change the current offset of the file
-      read(buffer, offset, n);
+
+    byte[] compressedBuffer = getByteArray();
+    byte[] decompressedBuffer = getByteArray();
+    int n = 0;
+    while (n >= 0 && n < length) {
+      long beginCompressed = getCompressedIndexBefore(position + n);
+      long endCompressed = getCompressedIndexAfter(position + n);
+      long beginUncompressed = getUncompressedIndexBefore(beginCompressed);
+      long compressedLength = endCompressed - beginCompressed;
+      int len = ((PositionedReadable) in).read(beginCompressed, compressedBuffer, 0, (int) compressedLength);
+      if (len <= 0) {
+        break;
+      }
+      decompressor.setInput(compressedBuffer, 0, len);
+      if (beginUncompressed < position) {
+        // drop some unnecessary data
+        decompressor.decompress(decompressedBuffer, 0, (int) (position - beginUncompressed));
+      }
+      int uncompressedBytes = decompressor.decompress(buffer, offset + n, length - n);
+      n += uncompressedBytes;
     }
+
+    returnByteArray(compressedBuffer);
+    returnByteArray(decompressedBuffer);
 
     return n;
   }
