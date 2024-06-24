@@ -71,13 +71,11 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
    * to inBuffer.limit().
    */
   private ByteBuffer inBuffer;
-  private byte[] inBufferArray;
   /**
    * The decompressed data buffer. The data starts at outBuffer.position() and
    * ends at outBuffer.limit();
    */
   private ByteBuffer outBuffer;
-  private byte[] outBufferArray;
 //  private long streamOffset = 0; // Underlying stream offset.
   /**
    * Whether the underlying stream supports
@@ -88,6 +86,9 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   // /** DirectBuffer pool */
   // private final Queue<ByteBuffer> bufferPool =
   //         new ConcurrentLinkedQueue<ByteBuffer>();
+  /** Byte Array pool */
+  private final Queue<byte[]> byteArrayPool =
+          new ConcurrentLinkedQueue<>();
   //  /**
 //   * Padding = pos%(algorithm blocksize); Padding is put into {@link #inBuffer}
 //   * before any other data goes in. The purpose of padding is to put the input
@@ -115,8 +116,6 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     isReadableByteChannel = in instanceof ReadableByteChannel;
     inBuffer = ByteBuffer.allocateDirect(this.bufferSize);
     outBuffer = ByteBuffer.allocateDirect(this.bufferSize);
-    inBufferArray = new byte[this.bufferSize];
-    outBufferArray = new byte[this.bufferSize];
     decompressor = getDecompressor();
 
     getIndexes(uncompressedIndexesBytes, compressedIndexesBytes);
@@ -326,6 +325,9 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    }
     inBuffer.flip();
     outBuffer.clear();
+    final byte[] inBufferArray = getByteArray();
+    final byte[] outBufferArray = getByteArray();
+
     final int compressedBytes = inBuffer.remaining();
     inBuffer.get(inBufferArray, 0, compressedBytes);
     decompressor.setInput(inBufferArray, 0, compressedBytes);
@@ -335,6 +337,9 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     outBuffer.flip();
     currentUncompressedIndex += uncompressedBytes;
     currentCompressedIndex += compressedBytes;
+
+    returnByteArray(inBufferArray);
+    returnByteArray(outBufferArray);
 //    if (padding > 0) {
 //      /*
 //       * The plain text and cipher text have a 1:1 mapping, they start at the
@@ -840,6 +845,27 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   private void checkStream() throws IOException {
     if (closed) {
       throw new IOException("Stream closed");
+    }
+  }
+
+  /**
+   * Get byte array from pool
+   */
+  private byte[] getByteArray() {
+    byte[] byteArray = byteArrayPool.poll();
+    if (byteArray == null) {
+      byteArray = new byte[bufferSize];
+    }
+
+    return byteArray;
+  }
+
+  /**
+   * Return byte array to pool
+   */
+  private void returnByteArray(byte[] byteArray) {
+    if (byteArray != null) {
+      byteArrayPool.add(byteArray);
     }
   }
 
