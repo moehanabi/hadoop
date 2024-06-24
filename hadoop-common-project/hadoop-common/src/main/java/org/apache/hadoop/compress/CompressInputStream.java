@@ -223,11 +223,10 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       outBuffer.get(b, off, n);
       return n;
     } else {
-      int n = 0;
+      int n;
       if ((n = readAndDecompress()) <= 0) {
         return n;
       }
-//      padding = afterDecryption(decompressor, inBuffer, streamOffset, iv);
       n = Math.min(len, outBuffer.remaining());
       outBuffer.get(b, off, n);
       return n;
@@ -285,7 +284,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
 
 //    streamOffset += n; // Read n bytes
-    decompress(decompressor, inBuffer, outBuffer, (byte) 0);
+    decompress(decompressor, inBuffer, outBuffer);
     return n;
   }
 
@@ -319,7 +318,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
    * outBuffer.position() and ends at outBuffer.limit();
    */
   private void decompress(Decompressor decompressor, ByteBuffer inBuffer,
-                       ByteBuffer outBuffer, byte padding) throws IOException {
+                       ByteBuffer outBuffer) throws IOException {
 //    Preconditions.checkState(inBuffer.position() >= padding);
 //    if(inBuffer.position() == padding) {
 //      // There is no real data in inBuffer.
@@ -382,7 +381,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    decompressor.init(key, iv);
 //  }
 
-  //@Override
+  @Override
   public synchronized void close() throws IOException {
     if (closed) {
       return;
@@ -393,7 +392,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   }
 
   /** Positioned read. It is thread-safe */
-  //@Override
+  @Override
   public int read(long position, byte[] buffer, int offset, int length)
           throws IOException {
     checkStream();
@@ -833,7 +832,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
   }
 
-  //@Override
+  @Override
   public int read() throws IOException {
     return (read(oneByteBuf, 0, 1) == -1) ? -1 : (oneByteBuf[0] & 0xff);
   }
