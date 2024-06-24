@@ -279,6 +279,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       }
     }
     if (n <= 0) {
+      outBuffer.limit(0);
       return n;
     }
 
@@ -290,7 +291,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   /** Read data from underlying stream. */
   private int readFromUnderlyingStream(ByteBuffer inBuffer, int toRead) throws IOException {
     if(toRead <= 0) {
-      return 0;
+      return -1;
     }
     final byte[] tmp = getTmpBuf();
     int n = 0;
