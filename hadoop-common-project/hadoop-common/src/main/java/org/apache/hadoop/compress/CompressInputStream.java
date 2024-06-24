@@ -587,7 +587,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //  }
 
   /** Positioned read fully. It is thread-safe */
-  //@Override
+  @Override
   public void readFully(long position, byte[] buffer, int offset, int length)
           throws IOException {
     checkStream();
@@ -595,14 +595,17 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       throw new UnsupportedOperationException(in.getClass().getCanonicalName()
               + " does not support positioned readFully.");
     }
-    ((PositionedReadable) in).readFully(position, buffer, offset, length);
+    if(uncompressedIndexes.get(uncompressedIndexes.size() - 1) < position + length) {
+      throw new EOFException("End of file reached before reading fully.");
+    }
+
     if (length > 0) {
       // This operation does not change the current offset of the file
       read(position, buffer, offset, length);
     }
   }
 
-  //@Override
+  @Override
   public void readFully(long position, byte[] buffer) throws IOException {
     readFully(position, buffer, 0, buffer.length);
   }
