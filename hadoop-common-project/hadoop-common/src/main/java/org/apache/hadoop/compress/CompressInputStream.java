@@ -747,7 +747,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     throw new IOException("Mark/reset not supported");
   }
 
-  //@Override
+  @Override
   public boolean seekToNewSource(long targetPos) throws IOException {
     Preconditions.checkArgument(targetPos >= 0,
             "Cannot seek to negative offset.");
@@ -756,8 +756,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       throw new UnsupportedOperationException(in.getClass().getCanonicalName()
               + " does not support seekToNewSource.");
     }
-    boolean result = ((Seekable) in).seekToNewSource(targetPos);
-//    resetStreamOffset(targetPos);
+    boolean result = ((Seekable) in).seekToNewSource(getCompressedIndexBefore(targetPos));
+    resetStreamOffset(targetPos);
     return result;
   }
 
