@@ -26,14 +26,11 @@ import org.apache.hadoop.fs.impl.StoreImplementationUtils;
 import org.apache.hadoop.fs.statistics.IOStatistics;
 import org.apache.hadoop.fs.statistics.IOStatisticsSource;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.fs.permission.FsAction;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.Compressor;
 
-import java.io.*;
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
