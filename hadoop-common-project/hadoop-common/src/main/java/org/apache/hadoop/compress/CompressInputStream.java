@@ -726,11 +726,11 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    }
 //  }
 
-  //@Override
+  @Override
   public int available() throws IOException {
     checkStream();
 
-    return in.available() + outBuffer.remaining();
+    return outBuffer.remaining();
   }
 
   //@Override
