@@ -733,16 +733,16 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     return outBuffer.remaining();
   }
 
-  //@Override
+  @Override
   public boolean markSupported() {
     return false;
   }
 
-  //@Override
+  @Override
   public void mark(int readLimit) {
   }
 
-  //@Override
+  @Override
   public void reset() throws IOException {
     throw new IOException("Mark/reset not supported");
   }
