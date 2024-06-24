@@ -19,12 +19,10 @@ package org.apache.hadoop.compress;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.fs.ByteBufferReadable;
-import org.apache.hadoop.fs.FSExceptionMessages;
-import org.apache.hadoop.fs.PositionedReadable;
-import org.apache.hadoop.fs.Seekable;
+import org.apache.hadoop.fs.*;
+import org.apache.hadoop.fs.statistics.IOStatistics;
+import org.apache.hadoop.fs.statistics.IOStatisticsSource;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.CompressionInputStream;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 
@@ -34,6 +32,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static org.apache.hadoop.fs.statistics.IOStatisticsSupport.retrieveIOStatistics;
 
 /**
  * CompressInputStream decompresss data. It is not thread-safe. AES CTR mode is
@@ -54,7 +54,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 //        CanSetDropBehind, CanSetReadahead, HasEnhancedByteBufferAccess,
 //        ReadableByteChannel, CanUnbuffer, StreamCapabilities,
 //        ByteBufferPositionedReadable, IOStatisticsSource
-public class CompressInputStream extends FilterInputStream implements Seekable, PositionedReadable {
+public class CompressInputStream extends FilterInputStream implements Seekable, PositionedReadable, HasFileDescriptor, CanSetDropBehind, CanSetReadahead, IOStatisticsSource {
   private final byte[] oneByteBuf = new byte[1];
   private final CompressionCodec codec;
   private final Decompressor decompressor;
@@ -801,37 +801,37 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    ((HasEnhancedByteBufferAccess) in).releaseBuffer(buffer);
 //  }
 
-//  //@Override
-//  public void setReadahead(Long readahead) throws IOException,
-//          UnsupportedOperationException {
-//    if (!(in instanceof CanSetReadahead)) {
-//      throw new UnsupportedOperationException(in.getClass().getCanonicalName()
-//              + " does not support setting the readahead caching strategy.");
-//    }
-//    ((CanSetReadahead) in).setReadahead(readahead);
-//  }
+  @Override
+  public void setReadahead(Long readahead) throws IOException,
+          UnsupportedOperationException {
+    if (!(in instanceof CanSetReadahead)) {
+      throw new UnsupportedOperationException(in.getClass().getCanonicalName()
+              + " does not support setting the readahead caching strategy.");
+    }
+    ((CanSetReadahead) in).setReadahead(readahead);
+  }
 
-//  //@Override
-//  public void setDropBehind(Boolean dropCache) throws IOException,
-//          UnsupportedOperationException {
-//    if (!(in instanceof CanSetReadahead)) {
-//      throw new UnsupportedOperationException(in.getClass().getCanonicalName()
-//              + " stream does not support setting the drop-behind caching"
-//              + " setting.");
-//    }
-//    ((CanSetDropBehind) in).setDropBehind(dropCache);
-//  }
+  @Override
+  public void setDropBehind(Boolean dropCache) throws IOException,
+          UnsupportedOperationException {
+    if (!(in instanceof CanSetReadahead)) {
+      throw new UnsupportedOperationException(in.getClass().getCanonicalName()
+              + " stream does not support setting the drop-behind caching"
+              + " setting.");
+    }
+    ((CanSetDropBehind) in).setDropBehind(dropCache);
+  }
 
-//  //@Override
-//  public FileDescriptor getFileDescriptor() throws IOException {
-//    if (in instanceof HasFileDescriptor) {
-//      return ((HasFileDescriptor) in).getFileDescriptor();
-//    } else if (in instanceof FileInputStream) {
-//      return ((FileInputStream) in).getFD();
-//    } else {
-//      return null;
-//    }
-//  }
+  @Override
+  public FileDescriptor getFileDescriptor() throws IOException {
+    if (in instanceof HasFileDescriptor) {
+      return ((HasFileDescriptor) in).getFileDescriptor();
+    } else if (in instanceof FileInputStream) {
+      return ((FileInputStream) in).getFD();
+    } else {
+      return null;
+    }
+  }
 
   //@Override
   public int read() throws IOException {
@@ -916,8 +916,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    }
 //  }
 
-//  //@Override
-//  public IOStatistics getIOStatistics() {
-//    return retrieveIOStatistics(in);
-//  }
+  @Override
+  public IOStatistics getIOStatistics() {
+    return retrieveIOStatistics(in);
+  }
 }
