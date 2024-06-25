@@ -133,7 +133,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
 <!--    <module>hadoop-yarn-project</module>-->
 <!--    <module>hadoop-mapreduce-project</module>-->
 <!--    <module>hadoop-tools</module>-->
-    <module>hadoop-dist</module>
+<!--    <module>hadoop-dist</module>-->
 <!--    <module>hadoop-miniclustWWer</module>-->
     <module>hadoop-client-modules</module>
 <!--    <module>hadoop-build-tools</module>-->
