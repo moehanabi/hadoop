@@ -1551,6 +1551,33 @@ public interface ClientProtocol {
       long prevId) throws IOException;
 
   /**
+   * Create an encryption zone.
+   */
+  @AtMostOnce
+  void createCompressionZone(String src, String codec)
+          throws IOException;
+
+  /**
+   * Get the encryption zone for a path.
+   */
+  @Idempotent
+  @ReadOnly(isCoordinated = true)
+  CompressionZone getCZForPath(String src)
+          throws IOException;
+
+  /**
+   * Used to implement cursor-based batched listing of {@link EncryptionZone}s.
+   *
+   * @param prevId ID of the last item in the previous batch. If there is no
+   *               previous batch, a negative value can be used.
+   * @return Batch of encryption zones.
+   */
+  @Idempotent
+  @ReadOnly(isCoordinated = true)
+  BatchedEntries<CompressionZone> listCompressionZones(
+          long prevId) throws IOException;
+
+  /**
    * Used to implement re-encryption of encryption zones.
    *
    * @param zone the encryption zone to re-encrypt.

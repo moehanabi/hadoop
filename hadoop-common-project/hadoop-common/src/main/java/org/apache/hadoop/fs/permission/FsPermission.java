@@ -380,6 +380,20 @@ public class FsPermission implements Writable, Serializable,
   }
 
   /**
+   * Returns true if the file is compressed or directory is in an encryption zone.
+   *
+   * @return if the file is compressed or directory
+   * is in an encryption zone true, not false.
+   *
+   * @deprecated Get encryption bit from the
+   * {@link org.apache.hadoop.fs.FileStatus} object.
+   */
+  @Deprecated
+  public boolean getCompressedBit() {
+    return false;
+  }
+
+  /**
    * Returns true if the file or directory is erasure coded.
    *
    * @return if the file or directory is

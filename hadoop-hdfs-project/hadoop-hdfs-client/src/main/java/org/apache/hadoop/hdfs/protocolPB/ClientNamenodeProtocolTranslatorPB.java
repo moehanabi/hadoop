@@ -24,6 +24,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.hadoop.hdfs.protocol.*;
 import org.apache.hadoop.thirdparty.com.google.common.collect.Lists;
 
 import java.util.Map;
@@ -52,43 +53,11 @@ import org.apache.hadoop.ha.HAServiceProtocol;
 import org.apache.hadoop.ha.proto.HAServiceProtocolProtos.HAServiceStateProto;
 import org.apache.hadoop.hdfs.AddBlockFlag;
 import org.apache.hadoop.hdfs.inotify.EventBatchList;
-import org.apache.hadoop.hdfs.protocol.AddErasureCodingPolicyResponse;
-import org.apache.hadoop.hdfs.protocol.BatchedDirectoryListing;
-import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
-import org.apache.hadoop.hdfs.protocol.CacheDirectiveEntry;
-import org.apache.hadoop.hdfs.protocol.CacheDirectiveInfo;
-import org.apache.hadoop.hdfs.protocol.CachePoolEntry;
-import org.apache.hadoop.hdfs.protocol.CachePoolInfo;
-import org.apache.hadoop.hdfs.protocol.ClientProtocol;
-import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
-import org.apache.hadoop.hdfs.protocol.DatanodeID;
-import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
-import org.apache.hadoop.hdfs.protocol.DirectoryListing;
-import org.apache.hadoop.hdfs.protocol.HdfsPartialListing;
-import org.apache.hadoop.hdfs.protocol.ECBlockGroupStats;
-import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
-import org.apache.hadoop.hdfs.protocol.EncryptionZone;
-import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
-import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
-import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.DatanodeReportType;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.ReencryptAction;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.RollingUpgradeAction;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
-import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
-import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
-import org.apache.hadoop.hdfs.protocol.LastBlockWithStatus;
-import org.apache.hadoop.hdfs.protocol.LocatedBlock;
-import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 import org.apache.hadoop.hdfs.protocol.OpenFilesIterator.OpenFilesType;
-import org.apache.hadoop.hdfs.protocol.ReplicatedBlockStats;
-import org.apache.hadoop.hdfs.protocol.OpenFileEntry;
-import org.apache.hadoop.hdfs.protocol.OpenFilesIterator;
-import org.apache.hadoop.hdfs.protocol.ZoneReencryptionStatus;
-import org.apache.hadoop.hdfs.protocol.RollingUpgradeInfo;
-import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
-import org.apache.hadoop.hdfs.protocol.SnapshotDiffReportListing;
-import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
 import org.apache.hadoop.hdfs.protocol.proto.AclProtos.GetAclStatusRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.AclProtos.GetAclStatusResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.AclProtos.ModifyAclEntriesRequestProto;
@@ -200,6 +169,10 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Upgrad
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpgradeStatusResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SatisfyStoragePolicyRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.*;
+import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.CreateCompressionZoneRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.CompressionZoneProto;
+import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.GetCZForPathRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.ListCompressionZonesRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.CreateEncryptionZoneRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.EncryptionZoneProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.GetEZForPathRequestProto;
@@ -1722,6 +1695,63 @@ public class ClientNamenodeProtocolTranslatorPB implements
       List<ZoneReencryptionStatus> elements =
           Lists.newArrayListWithCapacity(response.getStatusesCount());
       for (ZoneReencryptionStatusProto p : response.getStatusesList()) {
+        elements.add(PBHelperClient.convert(p));
+      }
+      return new BatchedListEntries<>(elements, response.getHasMore());
+    } catch (ServiceException e) {
+      throw ProtobufHelper.getRemoteException(e);
+    }
+  }
+
+  @Override
+  public void createCompressionZone(String src, String codec)
+          throws IOException {
+    final CreateCompressionZoneRequestProto.Builder builder =
+            CreateCompressionZoneRequestProto.newBuilder();
+    builder.setSrc(src);
+    if (codec != null && !codec.isEmpty()) {
+      builder.setCodec(codec);
+    }
+    CreateCompressionZoneRequestProto req = builder.build();
+    try {
+      rpcProxy.createCompressionZone(null, req);
+    } catch (ServiceException e) {
+      throw ProtobufHelper.getRemoteException(e);
+    }
+  }
+
+  @Override
+  public CompressionZone getCZForPath(String src) throws IOException {
+    final GetCZForPathRequestProto.Builder builder =
+            GetCZForPathRequestProto.newBuilder();
+    builder.setSrc(src);
+    final GetCZForPathRequestProto req = builder.build();
+    try {
+      final CompressionZonesProtos.GetCZForPathResponseProto response =
+              rpcProxy.getCZForPath(null, req);
+      if (response.hasZone()) {
+        return PBHelperClient.convert(response.getZone());
+      } else {
+        return null;
+      }
+    } catch (ServiceException e) {
+      throw ProtobufHelper.getRemoteException(e);
+    }
+  }
+
+  @Override
+  public BatchedEntries<CompressionZone> listCompressionZones(long id)
+          throws IOException {
+    final ListCompressionZonesRequestProto req =
+            ListCompressionZonesRequestProto.newBuilder()
+                    .setId(id)
+                    .build();
+    try {
+      CompressionZonesProtos.ListCompressionZonesResponseProto response =
+              rpcProxy.listCompressionZones(null, req);
+      List<CompressionZone> elements =
+              Lists.newArrayListWithCapacity(response.getZonesCount());
+      for (CompressionZoneProto p : response.getZonesList()) {
         elements.add(PBHelperClient.convert(p));
       }
       return new BatchedListEntries<>(elements, response.getHasMore());

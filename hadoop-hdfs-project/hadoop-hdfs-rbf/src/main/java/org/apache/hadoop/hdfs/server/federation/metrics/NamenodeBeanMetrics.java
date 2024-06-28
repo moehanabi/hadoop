@@ -839,6 +839,11 @@ public class NamenodeBeanMetrics
   }
 
   @Override
+  public int getNumCompressionZones() {
+    return 0;
+  }
+
+  @Override
   public String getVerifyECWithTopologyResult() {
     return null;
   }

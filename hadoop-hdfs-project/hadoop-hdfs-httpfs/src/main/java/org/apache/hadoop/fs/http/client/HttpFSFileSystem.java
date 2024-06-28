@@ -226,6 +226,7 @@ public class HttpFSFileSystem extends FileSystem
   public static final String ACL_BIT_JSON = "aclBit";
 
   public static final String ENC_BIT_JSON = "encBit";
+  public static final String COM_BIT_JSON = "comBit";
   public static final String EC_BIT_JSON = "ecBit";
   public static final String SNAPSHOT_BIT_JSON = "snapshotEnabled";
 
@@ -1113,20 +1114,22 @@ public class HttpFSFileSystem extends FileSystem
 
     final Boolean aclBit = (Boolean) json.get(ACL_BIT_JSON);
     final Boolean encBit = (Boolean) json.get(ENC_BIT_JSON);
+    final Boolean comBit = (Boolean) json.get(COM_BIT_JSON);
     final Boolean erasureBit = (Boolean) json.get(EC_BIT_JSON);
     final Boolean snapshotEnabledBit = (Boolean) json.get(SNAPSHOT_BIT_JSON);
     final boolean aBit = (aclBit != null) ? aclBit : false;
     final boolean eBit = (encBit != null) ? encBit : false;
+    final boolean cBit = (comBit != null) ? comBit : false;
     final boolean ecBit = (erasureBit != null) ? erasureBit : false;
     final boolean seBit =
         (snapshotEnabledBit != null) ? snapshotEnabledBit : false;
-    if (aBit || eBit || ecBit || seBit) {
+    if (aBit || eBit || cBit || ecBit || seBit) {
       // include this for compatibility with 2.x
       FsPermissionExtension deprecatedPerm =
-          new FsPermissionExtension(permission, aBit, eBit, ecBit);
+          new FsPermissionExtension(permission, aBit, eBit, cBit, ecBit);
       FileStatus fileStatus = new FileStatus(len, FILE_TYPE.DIRECTORY == type,
           replication, blockSize, mTime, aTime, deprecatedPerm, owner, group,
-          symLink, path, FileStatus.attributes(aBit, eBit, ecBit, seBit));
+          symLink, path, FileStatus.attributes(aBit, eBit, cBit, ecBit, seBit));
       return fileStatus;
     } else {
       return new FileStatus(len, FILE_TYPE.DIRECTORY == type,

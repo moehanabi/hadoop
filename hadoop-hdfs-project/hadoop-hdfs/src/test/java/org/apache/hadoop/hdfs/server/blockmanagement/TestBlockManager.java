@@ -1632,7 +1632,7 @@ public class TestBlockManager {
       ns.readLock();
       LocatedBlocks locatedBlocks =
           blockManager.createLocatedBlocks(blockInfos, 3L, false, 0L, 3L,
-              false, false, null, null);
+              false, false, null, null, null);
       assertTrue("Located Blocks should exclude corrupt" +
               "replicas and failed storages",
           locatedBlocks.getLocatedBlocks().size() == 1);
@@ -1691,13 +1691,13 @@ public class TestBlockManager {
     List<DatanodeDescriptor> origNodes = getNodes(origStorages);
     BlockInfo blockInfo = addBlockOnNodes(0, origNodes);
     spyBM.createLocatedBlocks(new BlockInfo[]{blockInfo}, 3L, false, 0L, 3L,
-        false, false, null, null);
+        false, false, null, null, null);
     verify(spyBM, Mockito.atLeast(0)).
         isReplicaCorrupt(any(BlockInfo.class),
             any(DatanodeDescriptor.class));
     addCorruptBlockOnNodes(0, origNodes);
     spyBM.createLocatedBlocks(new BlockInfo[]{blockInfo}, 3L, false, 0L, 3L,
-        false, false, null, null);
+        false, false, null, null, null);
     verify(spyBM, Mockito.atLeast(1)).
         isReplicaCorrupt(any(BlockInfo.class),
             any(DatanodeDescriptor.class));

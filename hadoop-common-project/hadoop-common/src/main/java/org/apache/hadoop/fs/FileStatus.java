@@ -64,6 +64,8 @@ public class FileStatus implements Writable, Comparable<Object>,
     HAS_ACL,
     /** Entity is encrypted. */
     HAS_CRYPT,
+    /** Entity is compressed. */
+    HAS_COMPRESS,
     /** Entity is stored erasure-coded. */
     HAS_EC,
     /** Snapshot capability enabled. */
@@ -79,13 +81,14 @@ public class FileStatus implements Writable, Comparable<Object>,
    * Convert boolean attributes to a set of flags.
    * @param acl   See {@link AttrFlags#HAS_ACL}.
    * @param crypt See {@link AttrFlags#HAS_CRYPT}.
+   * @param compress See {@link AttrFlags#HAS_COMPRESS}.
    * @param ec    See {@link AttrFlags#HAS_EC}.
    * @param sn    See {@link AttrFlags#SNAPSHOT_ENABLED}.
    * @return converted set of flags.
    */
-  public static Set<AttrFlags> attributes(boolean acl, boolean crypt,
+  public static Set<AttrFlags> attributes(boolean acl, boolean crypt, boolean compress,
                                           boolean ec, boolean sn) {
-    if (!(acl || crypt || ec || sn)) {
+    if (!(acl || crypt || compress || ec || sn)) {
       return NONE;
     }
     EnumSet<AttrFlags> ret = EnumSet.noneOf(AttrFlags.class);
@@ -94,6 +97,9 @@ public class FileStatus implements Writable, Comparable<Object>,
     }
     if (crypt) {
       ret.add(AttrFlags.HAS_CRYPT);
+    }
+    if (compress) {
+      ret.add(AttrFlags.HAS_COMPRESS);
     }
     if (ec) {
       ret.add(AttrFlags.HAS_EC);
@@ -145,16 +151,16 @@ public class FileStatus implements Writable, Comparable<Object>,
                     Path path) {
     this(length, isdir, block_replication, blocksize, modification_time,
         access_time, permission, owner, group, symlink, path,
-        false, false, false);
+        false, false, false, false);
   }
 
   public FileStatus(long length, boolean isdir, int block_replication,
       long blocksize, long modification_time, long access_time,
       FsPermission permission, String owner, String group, Path symlink,
-      Path path, boolean hasAcl, boolean isEncrypted, boolean isErasureCoded) {
+      Path path, boolean hasAcl, boolean isEncrypted, boolean isCompressed, boolean isErasureCoded) {
     this(length, isdir, block_replication, blocksize, modification_time,
         access_time, permission, owner, group, symlink, path,
-        attributes(hasAcl, isEncrypted, isErasureCoded, false));
+        attributes(hasAcl, isEncrypted, isCompressed, isErasureCoded, false));
   }
 
   public FileStatus(long length, boolean isdir, int block_replication,
@@ -308,6 +314,15 @@ public class FileStatus implements Writable, Comparable<Object>,
    */
   public boolean isEncrypted() {
     return attr.contains(AttrFlags.HAS_CRYPT);
+  }
+
+  /**
+   * Tell whether the underlying file or directory is compressed or not.
+   *
+   * @return true if the underlying file is compressed.
+   */
+  public boolean isCompressed() {
+    return attr.contains(AttrFlags.HAS_COMPRESS);
   }
 
   /**
@@ -480,6 +495,7 @@ public class FileStatus implements Writable, Comparable<Object>,
     }
     sb.append("; hasAcl=" + hasAcl())
         .append("; isEncrypted=" + isEncrypted())
+        .append("; isCompressed=" + isCompressed())
         .append("; isErasureCoded=" + isErasureCoded())
         .append("}");
     return sb.toString();
@@ -514,7 +530,7 @@ public class FileStatus implements Writable, Comparable<Object>,
     setGroup(other.getGroup());
     setSymlink((other.isSymlink() ? other.getSymlink() : null));
     setPath(other.getPath());
-    attr = attributes(other.hasAcl(), other.isEncrypted(),
+    attr = attributes(other.hasAcl(), other.isEncrypted(), other.isCompressed(),
         other.isErasureCoded(), other.isSnapshotEnabled());
     assert !(isDirectory() && isSymlink()) : "A directory cannot be a symlink";
   }

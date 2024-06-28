@@ -51,7 +51,7 @@ public class LocatedFileStatus extends FileStatus {
         stat.getBlockSize(), stat.getModificationTime(),
         stat.getAccessTime(), stat.getPermission(),
         stat.getOwner(), stat.getGroup(), null, stat.getPath(),
-        stat.hasAcl(), stat.isEncrypted(), stat.isErasureCoded(), locations);
+        stat.hasAcl(), stat.isEncrypted(), stat.isCompressed(), stat.isErasureCoded(), locations);
     if (stat.isSymlink()) {
       try {
         setSymlink(stat.getSymlink());
@@ -87,6 +87,7 @@ public class LocatedFileStatus extends FileStatus {
         access_time, permission, owner, group, symlink, path,
         permission == null ? false : permission.getAclBit(),
         permission == null ? false : permission.getEncryptedBit(),
+        permission == null ? false : permission.getCompressedBit(),
         permission == null ? false : permission.getErasureCodedBit(),
         locations);
   }
@@ -107,6 +108,7 @@ public class LocatedFileStatus extends FileStatus {
    * @param path the path's qualified name
    * @param hasAcl entity has associated ACLs
    * @param isEncrypted entity is encrypted
+   * @param isCompressed entity is compressed
    * @param isErasureCoded entity is erasure coded
    * @param locations a file's block locations
    */
@@ -114,11 +116,11 @@ public class LocatedFileStatus extends FileStatus {
       int block_replication, long blocksize, long modification_time,
       long access_time, FsPermission permission, String owner, String group,
       Path symlink, Path path,
-      boolean hasAcl, boolean isEncrypted, boolean isErasureCoded,
+      boolean hasAcl, boolean isEncrypted, boolean isCompressed, boolean isErasureCoded,
       BlockLocation[] locations) {
     this(length, isdir, block_replication, blocksize, modification_time,
         access_time, permission, owner, group, symlink, path,
-        attributes(hasAcl, isEncrypted, isErasureCoded, false), locations);
+        attributes(hasAcl, isEncrypted, isCompressed, isErasureCoded, false), locations);
     this.locations = locations;
   }
 

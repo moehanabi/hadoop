@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileChecksum;
 import org.apache.hadoop.fs.FileEncryptionInfo;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -62,6 +63,7 @@ import org.apache.hadoop.hdfs.protocol.CachePoolInfo;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
@@ -1689,6 +1691,59 @@ public class ViewDistributedFileSystem extends DistributedFileSystem {
     checkDFS(mountPathInfo.getTargetFs(), "provisionEZTrash");
     ((DistributedFileSystem) mountPathInfo.getTargetFs())
         .provisionEZTrash(mountPathInfo.getPathOnTarget(), trashPermission);
+  }
+
+  @Override
+  public void createCompressionZone(final Path path, final String codec)
+          throws IOException {
+    if (this.vfs == null) {
+      super.createCompressionZone(path, codec);
+      return;
+    }
+    ViewFileSystemOverloadScheme.MountPathInfo<FileSystem> mountPathInfo =
+            this.vfs.getMountPathInfo(path, getConf());
+    checkDFS(mountPathInfo.getTargetFs(), "createCompressionZone");
+    ((DistributedFileSystem) mountPathInfo.getTargetFs())
+            .createCompressionZone(mountPathInfo.getPathOnTarget(), codec);
+  }
+
+  @Override
+  public CompressionZone getCZForPath(final Path path) throws IOException {
+    if (this.vfs == null) {
+      return super.getCZForPath(path);
+    }
+    ViewFileSystemOverloadScheme.MountPathInfo<FileSystem> mountPathInfo =
+            this.vfs.getMountPathInfo(path, getConf());
+    checkDFS(mountPathInfo.getTargetFs(), "getCZForPath");
+    return ((DistributedFileSystem) mountPathInfo.getTargetFs())
+            .getCZForPath(mountPathInfo.getPathOnTarget());
+  }
+
+  /**
+   * Returns the results from default DFS (fallback). If you want the results
+   * from specific clusters, please invoke them on child fs instance directly.
+   */
+  @Override
+  public RemoteIterator<CompressionZone> listCompressionZones()
+          throws IOException {
+    if (this.vfs == null) {
+      return super.listCompressionZones();
+    }
+    checkDefaultDFS(defaultDFS, "listCompressionZones");
+    return defaultDFS.listCompressionZones();
+  }
+
+  @Override
+  public FileCompressionInfo getFileCompressionInfo(final Path path)
+          throws IOException {
+    if (this.vfs == null) {
+      return super.getFileCompressionInfo(path);
+    }
+    ViewFileSystemOverloadScheme.MountPathInfo<FileSystem> mountPathInfo =
+            this.vfs.getMountPathInfo(path, getConf());
+    checkDFS(mountPathInfo.getTargetFs(), "getFileCompressionInfo");
+    return ((DistributedFileSystem) mountPathInfo.getTargetFs())
+            .getFileCompressionInfo(mountPathInfo.getPathOnTarget());
   }
 
   @Override

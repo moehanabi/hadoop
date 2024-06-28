@@ -192,6 +192,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileEncryptionInfo;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsServerDefaults;
@@ -232,6 +233,7 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo.DatanodeInfoBuilder;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.DatanodeReportType;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.ReencryptAction;
@@ -2725,13 +2727,25 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
         }
       }
 
+      FileCompressionInfo fcInfo = null;
+      if (!iip.isRaw()) {
+        CompressionZone czInfo = FSDirCompressionZoneOp.getCZForPath(this.getFSDirectory(), iip);
+        if (czInfo != null) {
+          checkOperation(OperationCategory.WRITE);
+          iip = FSDirWriteFileOp.resolvePathForStartFile(
+                  dir, pc, iip.getPath(), flag, createParent);
+          fcInfo = FSDirCompressionZoneOp.getFileCompressionInfo(
+                  dir, iip, czInfo.getCodec());
+        }
+      }
+
       skipSync = false; // following might generate edits
       toRemoveBlocks = new BlocksMapUpdateInfo();
       dir.writeLock();
       try {
         stat = FSDirWriteFileOp.startFile(this, iip, permissions, holder,
             clientMachine, flag, createParent, replication, blockSize, feInfo,
-            toRemoveBlocks, shouldReplicate, ecPolicyName, storagePolicy,
+            fcInfo, toRemoveBlocks, shouldReplicate, ecPolicyName, storagePolicy,
             logRetryCache);
       } catch (IOException e) {
         skipSync = e instanceof StandbyException;
@@ -4773,6 +4787,12 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
   @Metric({ "NumEncryptionZones", "The number of encryption zones" })
   public int getNumEncryptionZones() {
     return dir.ezManager.getNumEncryptionZones();
+  }
+
+  @Override // FSNamesystemMBean
+  @Metric({ "NumCompressionZones", "The number of compression zones" })
+  public int getNumCompressionZones() {
+    return dir.czManager.getNumCompressionZones();
   }
 
   @Override // FSNamesystemMBean
@@ -7865,6 +7885,44 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
   }
 
   /**
+   * Create an encryption zone on directory src using the specified key.
+   *
+   * @param src     the path of a directory which will be the root of the
+   *                encryption zone. The directory must be empty.
+   * @param keyName name of a key which must be present in the configured
+   *                KeyProvider.
+   * @throws AccessControlException  if the caller is not the superuser.
+   * @throws UnresolvedLinkException if the path can't be resolved.
+   * @throws SafeModeException       if the Namenode is in safe mode.
+   */
+  void createCompressionZone(final String src, final String codec,
+                            boolean logRetryCache) throws IOException, UnresolvedLinkException,
+          SafeModeException, AccessControlException {
+    final String operationName = "createCompressionZone";
+    final FileStatus resultingStat;
+    try {
+      final FSPermissionChecker pc = getPermissionChecker();
+      FSPermissionChecker.setOperationType(operationName);
+      checkSuperuserPrivilege(pc);
+      checkOperation(OperationCategory.WRITE);
+      writeLock();
+      try {
+        checkOperation(OperationCategory.WRITE);
+        checkNameNodeSafeMode("Cannot create encryption zone on " + src);
+        resultingStat = FSDirCompressionZoneOp.createCompressionZone(dir, src,
+                pc, codec, logRetryCache);
+      } finally {
+        writeUnlock(operationName);
+      }
+    } catch (AccessControlException e) {
+      logAuditEvent(false, operationName, src);
+      throw e;
+    }
+    getEditLog().logSync();
+    logAuditEvent(true, operationName, src, null, resultingStat);
+  }
+
+  /**
    * Get the encryption zone for the specified path.
    *
    * @param srcArg the path of a file or directory to get the EZ for.
@@ -7899,6 +7957,41 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
     return encryptionZone;
   }
 
+  /**
+   * Get the encryption zone for the specified path.
+   *
+   * @param srcArg the path of a file or directory to get the EZ for.
+   * @return the EZ of the of the path or null if none.
+   * @throws AccessControlException  if the caller is not the superuser.
+   * @throws UnresolvedLinkException if the path can't be resolved.
+   */
+  CompressionZone getCZForPath(final String srcArg)
+          throws AccessControlException, UnresolvedLinkException, IOException {
+    final String operationName = "getCZForPath";
+    FileStatus resultingStat = null;
+    CompressionZone compressionZone;
+    final FSPermissionChecker pc = getPermissionChecker();
+    FSPermissionChecker.setOperationType(operationName);
+    checkOperation(OperationCategory.READ);
+    try {
+      readLock();
+      try {
+        checkOperation(OperationCategory.READ);
+        Entry<CompressionZone, FileStatus> czForPath = FSDirCompressionZoneOp
+                .getCZForPath(dir, srcArg, pc);
+        resultingStat = czForPath.getValue();
+        compressionZone = czForPath.getKey();
+      } finally {
+        readUnlock(operationName);
+      }
+    } catch (AccessControlException ace) {
+      logAuditEvent(false, operationName, srcArg, null, resultingStat);
+      throw ace;
+    }
+    logAuditEvent(true, operationName, srcArg, null, resultingStat);
+    return compressionZone;
+  }
+
   BatchedListEntries<EncryptionZone> listEncryptionZones(long prevId)
       throws IOException {
     final String operationName = "listEncryptionZones";
@@ -7912,6 +8005,27 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
       checkOperation(OperationCategory.READ);
       final BatchedListEntries<EncryptionZone> ret =
           FSDirEncryptionZoneOp.listEncryptionZones(dir, prevId);
+      success = true;
+      return ret;
+    } finally {
+      readUnlock(operationName);
+      logAuditEvent(success, operationName, null);
+    }
+  }
+
+  BatchedListEntries<CompressionZone> listCompressionZones(long prevId)
+          throws IOException {
+    final String operationName = "listEncryptionZones";
+    boolean success = false;
+    checkOperation(OperationCategory.READ);
+    final FSPermissionChecker pc = getPermissionChecker();
+    FSPermissionChecker.setOperationType(operationName);
+    checkSuperuserPrivilege(pc);
+    readLock();
+    try {
+      checkOperation(OperationCategory.READ);
+      final BatchedListEntries<CompressionZone> ret =
+              FSDirCompressionZoneOp.listCompressionZones(dir, prevId);
       success = true;
       return ret;
     } finally {

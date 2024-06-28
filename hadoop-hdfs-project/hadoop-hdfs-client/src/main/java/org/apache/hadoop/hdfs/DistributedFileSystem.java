@@ -46,6 +46,7 @@ import org.apache.hadoop.fs.FSLinkResolver;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileChecksum;
 import org.apache.hadoop.fs.FileEncryptionInfo;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileSystemLinkResolver;
@@ -94,6 +95,7 @@ import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
 import org.apache.hadoop.hdfs.protocol.HdfsPartialListing;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
@@ -2975,6 +2977,102 @@ public class DistributedFileSystem extends FileSystem
     mkdir(trashPath, trashPermission);
     setPermission(trashPath, trashPermission);
   }
+
+  /* HDFS only */
+  public void createCompressionZone(final Path path, final String codec)
+          throws IOException {
+    statistics.incrementWriteOps(1);
+    storageStatistics.incrementOpCounter(OpType.CREATE_ENCRYPTION_ZONE);
+    Path absF = fixRelativePart(path);
+    new FileSystemLinkResolver<Void>() {
+      @Override
+      public Void doCall(final Path p) throws IOException {
+        dfs.createCompressionZone(getPathName(p), codec);
+        return null;
+      }
+
+      @Override
+      public Void next(final FileSystem fs, final Path p) throws IOException {
+        if (fs instanceof DistributedFileSystem) {
+          DistributedFileSystem myDfs = (DistributedFileSystem) fs;
+          myDfs.createCompressionZone(p, codec);
+          return null;
+        } else {
+          throw new UnsupportedOperationException(
+                  "Cannot call createCompressionZone"
+                          + " on a symlink to a non-DistributedFileSystem: " + path
+                          + " -> " + p);
+        }
+      }
+    }.resolve(this, absF);
+  }
+
+  /* HDFS only */
+  public CompressionZone getCZForPath(final Path path)
+          throws IOException {
+    statistics.incrementReadOps(1);
+    storageStatistics.incrementOpCounter(OpType.GET_ENCRYPTION_ZONE);
+    Preconditions.checkNotNull(path);
+    Path absF = fixRelativePart(path);
+    return new FileSystemLinkResolver<CompressionZone>() {
+      @Override
+      public CompressionZone doCall(final Path p) throws IOException {
+        return dfs.getCZForPath(getPathName(p));
+      }
+
+      @Override
+      public CompressionZone next(final FileSystem fs, final Path p)
+              throws IOException {
+        if (fs instanceof DistributedFileSystem) {
+          DistributedFileSystem myDfs = (DistributedFileSystem) fs;
+          return myDfs.getCZForPath(p);
+        } else {
+          throw new UnsupportedOperationException(
+                  "Cannot call getCZForPath"
+                          + " on a symlink to a non-DistributedFileSystem: " + path
+                          + " -> " + p);
+        }
+      }
+    }.resolve(this, absF);
+  }
+
+  /* HDFS only */
+  public RemoteIterator<CompressionZone> listCompressionZones()
+          throws IOException {
+    statistics.incrementReadOps(1);
+    storageStatistics.incrementOpCounter(OpType.LIST_COMPRESSION_ZONE);
+    return dfs.listCompressionZones();
+  }
+
+  /* HDFS only */
+  public FileCompressionInfo getFileCompressionInfo(final Path path)
+          throws IOException {
+    Path absF = fixRelativePart(path);
+    return new FileSystemLinkResolver<FileCompressionInfo>() {
+      @Override
+      public FileCompressionInfo doCall(final Path p) throws IOException {
+        final HdfsFileStatus fi = dfs.getFileInfo(getPathName(p));
+        if (fi == null) {
+          throw new FileNotFoundException("File does not exist: " + p);
+        }
+        return fi.getFileCompressionInfo();
+      }
+
+      @Override
+      public FileCompressionInfo next(final FileSystem fs, final Path p)
+              throws IOException {
+        if (fs instanceof DistributedFileSystem) {
+          DistributedFileSystem myDfs = (DistributedFileSystem)fs;
+          return myDfs.getFileCompressionInfo(p);
+        }
+        throw new UnsupportedOperationException(
+                "Cannot call getFileCompressionInfo"
+                        + " on a symlink to a non-DistributedFileSystem: " + path
+                        + " -> " + p);
+      }
+    }.resolve(this, absF);
+  }
+
 
   @Override
   public void setXAttr(Path path, final String name, final byte[] value,

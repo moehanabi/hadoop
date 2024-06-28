@@ -1601,7 +1601,7 @@ public class TestDistributedFileSystem {
       public LocatedFileStatus next() throws IOException {
         remainingEntries--;
         return new LocatedFileStatus(0, false, 1, 1024, 0L, 0, null, null, null, null, subDir1,
-            false, false, false, null);
+            false, false, false, false, null);
       }
     };
   }

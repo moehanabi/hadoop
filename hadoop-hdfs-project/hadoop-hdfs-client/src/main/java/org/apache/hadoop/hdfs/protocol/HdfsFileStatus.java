@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileStatus.AttrFlags;
@@ -49,6 +50,7 @@ public interface HdfsFileStatus
   enum Flags {
     HAS_ACL,
     HAS_CRYPT,
+    HAS_COMPRESS,
     HAS_EC,
     SNAPSHOT_ENABLED
   }
@@ -77,6 +79,7 @@ public interface HdfsFileStatus
     private long fileId                    = -1L;
     private int childrenNum                = 0;
     private FileEncryptionInfo feInfo      = null;
+    private FileCompressionInfo fcInfo      = null;
     private byte storagePolicy             =
         HdfsConstants.BLOCK_STORAGE_POLICY_ID_UNSPECIFIED;
     private ErasureCodingPolicy ecPolicy   = null;
@@ -239,6 +242,16 @@ public interface HdfsFileStatus
     }
 
     /**
+     * Set the compression info for this entity (default = null).
+     * @param fcInfo Compression info
+     * @return This Builder instance
+     */
+    public Builder fcInfo(FileCompressionInfo fcInfo) {
+      this.fcInfo = fcInfo;
+      return this;
+    }
+
+    /**
      * Set the storage policy for this entity
      * (default = {@link HdfsConstants#BLOCK_STORAGE_POLICY_ID_UNSPECIFIED}).
      * @param storagePolicy Storage policy
@@ -277,11 +290,11 @@ public interface HdfsFileStatus
       if (null == locations && !isdir && null == symlink) {
         return new HdfsNamedFileStatus(length, isdir, replication, blocksize,
             mtime, atime, permission, flags, owner, group, symlink, path,
-            fileId, childrenNum, feInfo, storagePolicy, ecPolicy);
+            fileId, childrenNum, feInfo, fcInfo, storagePolicy, ecPolicy);
       }
       return new HdfsLocatedFileStatus(length, isdir, replication, blocksize,
           mtime, atime, permission, flags, owner, group, symlink, path,
-          fileId, childrenNum, feInfo, storagePolicy, ecPolicy, locations);
+          fileId, childrenNum, feInfo, fcInfo, storagePolicy, ecPolicy, locations);
     }
 
   }
@@ -302,6 +315,13 @@ public interface HdfsFileStatus
    *         encrypted.
    */
   FileEncryptionInfo getFileEncryptionInfo();
+
+  /**
+   * Get metadata for compression, if present.
+   * @return the {@link FileCompressionInfo} for this stream, or null if not
+   *         compressed.
+   */
+  FileCompressionInfo getFileCompressionInfo();
 
   /**
    * Check if the local name is empty.
@@ -470,6 +490,10 @@ public interface HdfsFileStatus
    */
   boolean isEncrypted();
   /**
+   * See {@link FileStatus#isCompressed()}.
+   */
+  boolean isCompressed();
+  /**
    * See {@link FileStatus#isErasureCoded()}.
    */
   boolean isErasureCoded();
@@ -499,6 +523,7 @@ public interface HdfsFileStatus
       // verify flags are set consistently
       assert p.getAclBit() == f.contains(HdfsFileStatus.Flags.HAS_ACL);
       assert p.getEncryptedBit() == f.contains(HdfsFileStatus.Flags.HAS_CRYPT);
+      assert p.getCompressedBit() == f.contains(HdfsFileStatus.Flags.HAS_COMPRESS);
       assert p.getErasureCodedBit() == f.contains(HdfsFileStatus.Flags.HAS_EC);
       return p;
     }
@@ -512,7 +537,7 @@ public interface HdfsFileStatus
       }
     }
     return new FsPermissionExtension(p, f.contains(Flags.HAS_ACL),
-        f.contains(Flags.HAS_CRYPT), f.contains(Flags.HAS_EC));
+        f.contains(Flags.HAS_CRYPT), f.contains(Flags.HAS_COMPRESS), f.contains(Flags.HAS_EC));
   }
 
   static Set<AttrFlags> convert(Set<Flags> flags) {
@@ -528,6 +553,9 @@ public interface HdfsFileStatus
     }
     if (flags.contains(Flags.HAS_CRYPT)) {
       attr.add(AttrFlags.HAS_CRYPT);
+    }
+    if (flags.contains(Flags.HAS_COMPRESS)) {
+      attr.add(AttrFlags.HAS_COMPRESS);
     }
     if (flags.contains(Flags.SNAPSHOT_ENABLED)) {
       attr.add(AttrFlags.SNAPSHOT_ENABLED);

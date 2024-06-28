@@ -24,6 +24,7 @@ import org.apache.hadoop.hdfs.AddBlockFlag;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileEncryptionInfo;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.FsAction;
@@ -356,13 +357,13 @@ class FSDirWriteFileOp {
    * {@link ClientProtocol#create}
    */
   static HdfsFileStatus startFile(
-      FSNamesystem fsn, INodesInPath iip,
-      PermissionStatus permissions, String holder, String clientMachine,
-      EnumSet<CreateFlag> flag, boolean createParent,
-      short replication, long blockSize,
-      FileEncryptionInfo feInfo, INode.BlocksMapUpdateInfo toRemoveBlocks,
-      boolean shouldReplicate, String ecPolicyName, String storagePolicy,
-      boolean logRetryEntry)
+          FSNamesystem fsn, INodesInPath iip,
+          PermissionStatus permissions, String holder, String clientMachine,
+          EnumSet<CreateFlag> flag, boolean createParent,
+          short replication, long blockSize,
+          FileEncryptionInfo feInfo, FileCompressionInfo fcInfo, INode.BlocksMapUpdateInfo toRemoveBlocks,
+          boolean shouldReplicate, String ecPolicyName, String storagePolicy,
+          boolean logRetryEntry)
       throws IOException {
     assert fsn.hasWriteLock();
     boolean overwrite = flag.contains(CreateFlag.OVERWRITE);
@@ -409,6 +410,10 @@ class FSDirWriteFileOp {
     if (feInfo != null) {
       FSDirEncryptionZoneOp.setFileEncryptionInfo(fsd, iip, feInfo,
           XAttrSetFlag.CREATE);
+    }
+    if (fcInfo != null) {
+      FSDirCompressionZoneOp.setFileCompressionInfo(fsd, iip, fcInfo,
+              XAttrSetFlag.CREATE);
     }
     setNewINodeStoragePolicy(fsd.getBlockManager(), iip, isLazyPersist);
     fsd.getEditLog().logOpenFile(src, newNode, overwrite, logRetryEntry);

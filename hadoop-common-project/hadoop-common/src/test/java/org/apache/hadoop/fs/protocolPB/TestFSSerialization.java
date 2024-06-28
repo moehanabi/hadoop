@@ -36,13 +36,14 @@ public class TestFSSerialization {
   @SuppressWarnings("deprecation")
   public void testWritableFlagSerialization() throws Exception {
     final Path p = new Path("hdfs://yaks:4344/dingos/f");
-    for (int i = 0; i < 0x8; ++i) {
+    for (int i = 0; i < 0x10; ++i) {
       final boolean acl   = 0 != (i & 0x1);
       final boolean crypt = 0 != (i & 0x2);
       final boolean ec    = 0 != (i & 0x4);
+      final boolean compress = 0 != (i & 0x08);
       FileStatus stat = new FileStatus(1024L, false, 3, 1L << 31,
           12345678L, 87654321L, FsPermission.getFileDefault(),
-          "hadoop", "unqbbc", null, p, acl, crypt, ec);
+          "hadoop", "unqbbc", null, p, acl, crypt, compress, ec);
       DataOutputBuffer dob = new DataOutputBuffer();
       stat.write(dob);
       DataInputBuffer dib = new DataInputBuffer();

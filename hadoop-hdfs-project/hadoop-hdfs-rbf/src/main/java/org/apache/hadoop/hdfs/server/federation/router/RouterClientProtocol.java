@@ -57,6 +57,7 @@ import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.ECBlockGroupStats;
 import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
@@ -1505,6 +1506,40 @@ public class RouterClientProtocol implements ClientProtocol {
   }
 
   @Override
+  public void createCompressionZone(String src, String codec)
+          throws IOException {
+    rpcServer.checkOperation(NameNode.OperationCategory.WRITE);
+
+    // TODO handle virtual directories
+    final List<RemoteLocation> locations =
+            rpcServer.getLocationsForPath(src, false, false);
+    RemoteMethod method = new RemoteMethod("createCompressionZone",
+            new Class<?>[] {String.class, String.class},
+            new RemoteParam(), codec);
+    rpcClient.invokeSequential(locations, method);
+  }
+
+  @Override
+  public CompressionZone getCZForPath(String src) throws IOException {
+    rpcServer.checkOperation(NameNode.OperationCategory.READ);
+
+    // TODO handle virtual directories
+    final List<RemoteLocation> locations =
+            rpcServer.getLocationsForPath(src, false, false);
+    RemoteMethod method = new RemoteMethod("getCZForPath",
+            new Class<?>[] {String.class}, new RemoteParam());
+    return rpcClient.invokeSequential(
+            locations, method, CompressionZone.class, null);
+  }
+
+  @Override
+  public BatchedEntries<CompressionZone> listCompressionZones(long prevId)
+          throws IOException {
+    rpcServer.checkOperation(NameNode.OperationCategory.READ, false);
+    return null;
+  }
+
+  @Override
   public void reencryptEncryptionZone(String zone, HdfsConstants.ReencryptAction action)
       throws IOException {
     rpcServer.checkOperation(NameNode.OperationCategory.WRITE, false);
@@ -2013,7 +2048,7 @@ public class RouterClientProtocol implements ClientProtocol {
             group = fInfo.getGroup();
             childrenNum = fInfo.getChildrenNum();
             flags = DFSUtil
-                .getFlags(fInfo.isEncrypted(), fInfo.isErasureCoded(),
+                .getFlags(fInfo.isEncrypted(), fInfo.isCompressed(), fInfo.isErasureCoded(),
                     fInfo.isSnapshotEnabled(), fInfo.hasAcl());
           }
         }

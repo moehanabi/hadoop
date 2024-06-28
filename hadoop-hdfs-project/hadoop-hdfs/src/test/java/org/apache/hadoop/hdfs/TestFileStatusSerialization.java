@@ -101,6 +101,7 @@ public class TestFileStatusSerialization {
       FsPermission sp = stat.getPermission();
       assertEquals(sp.getAclBit(), stat.hasAcl());
       assertEquals(sp.getEncryptedBit(), stat.isEncrypted());
+      assertEquals(sp.getCompressedBit(), stat.isCompressed());
       assertEquals(sp.getErasureCodedBit(), stat.isErasureCoded());
 
       // verify Writable contract
@@ -116,6 +117,7 @@ public class TestFileStatusSerialization {
       // attribute flags should still be preserved
       assertEquals(sp.getAclBit(), fstat.hasAcl());
       assertEquals(sp.getEncryptedBit(), fstat.isEncrypted());
+      assertEquals(sp.getCompressedBit(), fstat.isCompressed());
       assertEquals(sp.getErasureCodedBit(), fstat.isErasureCoded());
     }
   }

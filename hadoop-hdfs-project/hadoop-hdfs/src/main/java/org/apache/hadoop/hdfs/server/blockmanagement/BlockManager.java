@@ -55,6 +55,7 @@ import javax.management.ObjectName;
 import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.hdfs.AddBlockFlag;
 import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.fs.StorageType;
@@ -1482,18 +1483,18 @@ public class BlockManager implements BlockStatsMXBean {
 
   /** Create a LocatedBlocks. */
   public LocatedBlocks createLocatedBlocks(final BlockInfo[] blocks,
-      final long fileSizeExcludeBlocksUnderConstruction,
-      final boolean isFileUnderConstruction, final long offset,
-      final long length, final boolean needBlockToken,
-      final boolean inSnapshot, FileEncryptionInfo feInfo,
-      ErasureCodingPolicy ecPolicy)
+                                           final long fileSizeExcludeBlocksUnderConstruction,
+                                           final boolean isFileUnderConstruction, final long offset,
+                                           final long length, final boolean needBlockToken,
+                                           final boolean inSnapshot, FileEncryptionInfo feInfo,
+                                           FileCompressionInfo fcInfo, ErasureCodingPolicy ecPolicy)
       throws IOException {
     assert namesystem.hasReadLock();
     if (blocks == null) {
       return null;
     } else if (blocks.length == 0) {
       return new LocatedBlocks(0, isFileUnderConstruction,
-          Collections.<LocatedBlock> emptyList(), null, false, feInfo, ecPolicy);
+          Collections.<LocatedBlock> emptyList(), null, false, feInfo, fcInfo, ecPolicy);
     } else {
       if (LOG.isDebugEnabled()) {
         LOG.debug("blocks = {}", java.util.Arrays.asList(blocks));
@@ -1505,6 +1506,7 @@ public class BlockManager implements BlockStatsMXBean {
           .fileLength(fileSizeExcludeBlocksUnderConstruction)
           .lastUC(isFileUnderConstruction)
           .encryption(feInfo)
+          .compression(fcInfo)
           .erasureCoding(ecPolicy);
 
       createLocatedBlockList(locatedBlocks, blocks, offset, length, mode);

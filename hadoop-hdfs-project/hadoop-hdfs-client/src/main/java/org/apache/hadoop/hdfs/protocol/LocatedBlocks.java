@@ -23,6 +23,7 @@ import java.util.Comparator;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileEncryptionInfo;
 
 /**
@@ -38,6 +39,7 @@ public class LocatedBlocks {
   private final LocatedBlock lastLocatedBlock;
   private final boolean isLastBlockComplete;
   private final FileEncryptionInfo fileEncryptionInfo;
+  private final FileCompressionInfo fileCompressionInfo;
   private final ErasureCodingPolicy ecPolicy;
 
   public LocatedBlocks() {
@@ -47,19 +49,21 @@ public class LocatedBlocks {
     lastLocatedBlock = null;
     isLastBlockComplete = false;
     fileEncryptionInfo = null;
+    fileCompressionInfo = null;
     ecPolicy = null;
   }
 
   public LocatedBlocks(long flength, boolean isUnderConstuction,
       List<LocatedBlock> blks, LocatedBlock lastBlock,
       boolean isLastBlockCompleted, FileEncryptionInfo feInfo,
-      ErasureCodingPolicy ecPolicy) {
+      FileCompressionInfo fcInfo, ErasureCodingPolicy ecPolicy) {
     fileLength = flength;
     blocks = blks;
     underConstruction = isUnderConstuction;
     this.lastLocatedBlock = lastBlock;
     this.isLastBlockComplete = isLastBlockCompleted;
     this.fileEncryptionInfo = feInfo;
+    this.fileCompressionInfo = fcInfo;
     this.ecPolicy = ecPolicy;
   }
 
@@ -114,6 +118,13 @@ public class LocatedBlocks {
    */
   public FileEncryptionInfo getFileEncryptionInfo() {
     return fileEncryptionInfo;
+  }
+
+  /**
+   * @return the FileCompressionInfo for the LocatedBlocks
+   */
+  public FileCompressionInfo getFileCompressionInfo() {
+    return fileCompressionInfo;
   }
 
   /**

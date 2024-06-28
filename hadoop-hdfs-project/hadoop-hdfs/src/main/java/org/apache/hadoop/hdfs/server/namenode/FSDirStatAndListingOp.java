@@ -23,6 +23,7 @@ import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.DirectoryListingStartAfterNotFoundException;
 import org.apache.hadoop.fs.FileEncryptionInfo;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -172,13 +173,15 @@ class FSDirStatAndListingOp {
       }
 
       final FileEncryptionInfo feInfo =
-          FSDirEncryptionZoneOp.getFileEncryptionInfo(fsd, iip);
+              FSDirEncryptionZoneOp.getFileEncryptionInfo(fsd, iip);
+      final FileCompressionInfo fcInfo =
+              FSDirCompressionZoneOp.getFileCompressionInfo(fsd, iip);;
       final ErasureCodingPolicy ecPolicy = FSDirErasureCodingOp.
           unprotectedGetErasureCodingPolicy(fsd.getFSNamesystem(), iip);
 
       final LocatedBlocks blocks = bm.createLocatedBlocks(
           inode.getBlocks(iip.getPathSnapshotId()), fileSize, isUc, offset,
-          length, needBlockToken, iip.isSnapshot(), feInfo, ecPolicy);
+          length, needBlockToken, iip.isSnapshot(), feInfo, fcInfo, ecPolicy);
 
       final long now = now();
       boolean updateAccessTime = fsd.isAccessTimeSupported()
@@ -414,8 +417,9 @@ class FSDirStatAndListingOp {
     LocatedBlocks loc = null;
 
     final boolean isEncrypted = FSDirEncryptionZoneOp.isInAnEZ(fsd, iip);
+    final boolean isCompressed = FSDirCompressionZoneOp.isInAnCZ(fsd, iip);
     FileEncryptionInfo feInfo = null;
-
+    FileCompressionInfo fcInfo = null;
     final ErasureCodingPolicy ecPolicy = FSDirErasureCodingOp
         .unprotectedGetErasureCodingPolicy(fsd.getFSNamesystem(), iip);
     final boolean isErasureCoded = (ecPolicy != null);
@@ -430,6 +434,9 @@ class FSDirStatAndListingOp {
       if (isEncrypted) {
         feInfo = FSDirEncryptionZoneOp.getFileEncryptionInfo(fsd, iip);
       }
+      if (isCompressed) {
+        fcInfo = FSDirCompressionZoneOp.getFileCompressionInfo(fsd, iip);
+      }
       if (needLocation) {
         final boolean inSnapshot = snapshot != Snapshot.CURRENT_STATE_ID;
         final boolean isUc = !inSnapshot && fileNode.isUnderConstruction();
@@ -437,7 +444,7 @@ class FSDirStatAndListingOp {
             ? fileNode.computeFileSizeNotIncludingLastUcBlock() : size;
         loc = fsd.getBlockManager().createLocatedBlocks(
             fileNode.getBlocks(snapshot), fileSize, isUc, 0L, size,
-            needBlockToken, inSnapshot, feInfo, ecPolicy);
+            needBlockToken, inSnapshot, feInfo, fcInfo, ecPolicy);
         if (loc == null) {
           loc = new LocatedBlocks();
         }
@@ -453,7 +460,7 @@ class FSDirStatAndListingOp {
     boolean hasAcl = nodeAttrs.getAclFeature() != null;
 
     EnumSet<HdfsFileStatus.Flags> flags =
-        DFSUtil.getFlags(isEncrypted, isErasureCoded, isSnapShottable, hasAcl);
+        DFSUtil.getFlags(isEncrypted, isCompressed, isErasureCoded, isSnapShottable, hasAcl);
 
     return createFileStatus(
         size,
@@ -471,6 +478,7 @@ class FSDirStatAndListingOp {
         node.getId(),
         childrenNum,
         feInfo,
+        fcInfo,
         storagePolicy,
         ecPolicy,
         loc);
@@ -481,7 +489,7 @@ class FSDirStatAndListingOp {
       int replication, long blocksize, long mtime, long atime,
       FsPermission permission, EnumSet<HdfsFileStatus.Flags> flags,
       String owner, String group, byte[] symlink, byte[] path, long fileId,
-      int childrenNum, FileEncryptionInfo feInfo, byte storagePolicy,
+      int childrenNum, FileEncryptionInfo feInfo, FileCompressionInfo fcInfo, byte storagePolicy,
       ErasureCodingPolicy ecPolicy, LocatedBlocks locations) {
     return new HdfsFileStatus.Builder()
         .length(length)
@@ -499,6 +507,7 @@ class FSDirStatAndListingOp {
         .fileId(fileId)
         .children(childrenNum)
         .feInfo(feInfo)
+        .fcInfo(fcInfo)
         .storagePolicy(storagePolicy)
         .ecPolicy(ecPolicy)
         .locations(locations)

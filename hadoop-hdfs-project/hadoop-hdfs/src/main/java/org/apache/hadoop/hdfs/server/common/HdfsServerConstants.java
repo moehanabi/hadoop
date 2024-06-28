@@ -386,6 +386,10 @@ public interface HdfsServerConstants {
       "raw.hdfs.crypto.encryption.zone";
   String CRYPTO_XATTR_FILE_ENCRYPTION_INFO =
       "raw.hdfs.crypto.file.encryption.info";
+  String COMPRESS_XATTR_COMPRESSION_ZONE =
+      "raw.hdfs.compress.compression.zone";
+  String COMPRESS_XATTR_FILE_COMPRESSION_INFO =
+      "raw.hdfs.compress.file.compression.info";
   String SECURITY_XATTR_UNREADABLE_BY_SUPERUSER =
       "security.hdfs.unreadable.by.superuser";
   String XATTR_ERASURECODING_POLICY =

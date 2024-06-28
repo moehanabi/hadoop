@@ -324,9 +324,9 @@ public class TestObserverNode {
       LocatedBlock fakeBlock = new LocatedBlock(b, DatanodeInfo.EMPTY_ARRAY);
       List<LocatedBlock> fakeBlocks = new ArrayList<>();
       fakeBlocks.add(fakeBlock);
-      return new LocatedBlocks(0, false, fakeBlocks, null, true, null, null);
+      return new LocatedBlocks(0, false, fakeBlocks, null, true, null, null, null);
     }).when(bmSpy).createLocatedBlocks(any(), anyLong(), anyBoolean(),
-        anyLong(), anyLong(), anyBoolean(), anyBoolean(), any(), any());
+        anyLong(), anyLong(), anyBoolean(), anyBoolean(), any(), any(), any());
 
     // Open the file again - it should throw retriable exception and then
     // failover to active.
@@ -362,10 +362,10 @@ public class TestObserverNode {
       ExtendedBlock b = new ExtendedBlock("fake-pool", new Block(12345L));
       LocatedBlock fakeBlock = new LocatedBlock(b, DatanodeInfo.EMPTY_ARRAY);
       fakeBlocks.add(fakeBlock);
-      return new LocatedBlocks(0, false, fakeBlocks, null, true, null, null);
+      return new LocatedBlocks(0, false, fakeBlocks, null, true, null, null, null);
     }).when(bmSpy).createLocatedBlocks(Mockito.any(), anyLong(),
         anyBoolean(), anyLong(), anyLong(), anyBoolean(), anyBoolean(),
-        Mockito.any(), Mockito.any());
+        Mockito.any(), Mockito.any(), Mockito.any());
 
     dfs.open(testPath);
     assertSentTo(0);

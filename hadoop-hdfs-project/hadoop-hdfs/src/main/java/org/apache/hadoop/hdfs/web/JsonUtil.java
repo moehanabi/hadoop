@@ -134,6 +134,9 @@ public class JsonUtil {
     if (status.isEncrypted()) {
       m.put("encBit", true);
     }
+    if (status.isCompressed()) {
+      m.put("comBit", true);
+    }
     if (status.isErasureCoded()) {
       m.put("ecBit", true);
       if (status.getErasureCodingPolicy() != null) {

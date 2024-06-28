@@ -136,6 +136,7 @@ public class JsonUtilClient {
 
     Boolean aclBit = (Boolean) m.get("aclBit");
     Boolean encBit = (Boolean) m.get("encBit");
+    Boolean comBit = (Boolean) m.get("comBit");
     Boolean erasureBit  = (Boolean) m.get("ecBit");
     Boolean snapshotEnabledBit  = (Boolean) m.get("snapshotEnabled");
     EnumSet<HdfsFileStatus.Flags> f =
@@ -145,6 +146,9 @@ public class JsonUtilClient {
     }
     if (encBit != null && encBit) {
       f.add(HdfsFileStatus.Flags.HAS_CRYPT);
+    }
+    if (comBit != null && comBit) {
+      f.add(HdfsFileStatus.Flags.HAS_COMPRESS);
     }
     if (erasureBit != null && erasureBit) {
       f.add(HdfsFileStatus.Flags.HAS_EC);
@@ -697,7 +701,7 @@ public class JsonUtilClient {
         (Map<?, ?>) m.get("lastLocatedBlock"));
     final boolean isLastBlockComplete = (Boolean)m.get("isLastBlockComplete");
     return new LocatedBlocks(fileLength, isUnderConstruction, locatedBlocks,
-        lastLocatedBlock, isLastBlockComplete, null, null);
+        lastLocatedBlock, isLastBlockComplete, null, null, null);
   }
 
   public static Collection<BlockStoragePolicy> getStoragePolicies(

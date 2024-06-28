@@ -53,6 +53,7 @@ import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.HdfsPartialListing;
 import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
@@ -243,6 +244,7 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Update
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpdatePipelineResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SatisfyStoragePolicyRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SatisfyStoragePolicyResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.*;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.CreateEncryptionZoneResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.CreateEncryptionZoneRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.GetEZForPathResponseProto;
@@ -1619,6 +1621,54 @@ public class ClientNamenodeProtocolServerSideTranslatorPB implements
           .listEncryptionZones(req.getId());
       ListEncryptionZonesResponseProto.Builder builder =
           ListEncryptionZonesResponseProto.newBuilder();
+      builder.setHasMore(entries.hasMore());
+      for (int i=0; i<entries.size(); i++) {
+        builder.addZones(PBHelperClient.convert(entries.get(i)));
+      }
+      return builder.build();
+    } catch (IOException e) {
+      throw new ServiceException(e);
+    }
+  }
+
+  @Override
+  public CreateCompressionZoneResponseProto createCompressionZone(
+          RpcController controller, CreateCompressionZoneRequestProto req)
+          throws ServiceException {
+    try {
+      server.createCompressionZone(req.getSrc(), req.getCodec());
+      return CreateCompressionZoneResponseProto.newBuilder().build();
+    } catch (IOException e) {
+      throw new ServiceException(e);
+    }
+  }
+
+  @Override
+  public GetCZForPathResponseProto getCZForPath(
+          RpcController controller, GetCZForPathRequestProto req)
+          throws ServiceException {
+    try {
+      GetCZForPathResponseProto.Builder builder =
+              GetCZForPathResponseProto.newBuilder();
+      final CompressionZone ret = server.getCZForPath(req.getSrc());
+      if (ret != null) {
+        builder.setZone(PBHelperClient.convert(ret));
+      }
+      return builder.build();
+    } catch (IOException e) {
+      throw new ServiceException(e);
+    }
+  }
+
+  @Override
+  public ListCompressionZonesResponseProto listCompressionZones(
+          RpcController controller, ListCompressionZonesRequestProto req)
+          throws ServiceException {
+    try {
+      BatchedEntries<CompressionZone> entries = server
+              .listCompressionZones(req.getId());
+      ListCompressionZonesResponseProto.Builder builder =
+              ListCompressionZonesResponseProto.newBuilder();
       builder.setHasMore(entries.hasMore());
       for (int i=0; i<entries.size(); i++) {
         builder.addZones(PBHelperClient.convert(entries.get(i)));

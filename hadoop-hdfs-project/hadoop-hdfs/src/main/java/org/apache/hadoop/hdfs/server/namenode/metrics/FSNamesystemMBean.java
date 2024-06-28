@@ -216,6 +216,11 @@ public interface FSNamesystemMBean {
   int getNumEncryptionZones();
 
   /**
+   * Return the number of compression zones in the system.
+   */
+  int getNumCompressionZones();
+
+  /**
    * Returns the length of the wait Queue for the FSNameSystemLock.
    *
    * A larger number here indicates lots of threads are waiting for

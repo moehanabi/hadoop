@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hdfs.protocol;
 
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -38,6 +39,7 @@ public class HdfsNamedFileStatus extends FileStatus implements HdfsFileStatus {
   private byte[] uSymlink; // symlink target encoded in java UTF8/null
   private final long fileId;
   private final FileEncryptionInfo feInfo;
+  private final FileCompressionInfo fcInfo;
   private final ErasureCodingPolicy ecPolicy;
 
   // Used by dir, not including dot and dotdot. Always zero for a regular file.
@@ -68,7 +70,7 @@ public class HdfsNamedFileStatus extends FileStatus implements HdfsFileStatus {
                       FsPermission permission, Set<Flags> flags,
                       String owner, String group,
                       byte[] symlink, byte[] path, long fileId,
-                      int childrenNum, FileEncryptionInfo feInfo,
+                      int childrenNum, FileEncryptionInfo feInfo, FileCompressionInfo fcInfo,
                       byte storagePolicy, ErasureCodingPolicy ecPolicy) {
     super(length, isdir, replication, blocksize, mtime, atime,
         HdfsFileStatus.convert(isdir, symlink != null, permission, flags),
@@ -79,6 +81,7 @@ public class HdfsNamedFileStatus extends FileStatus implements HdfsFileStatus {
     this.fileId = fileId;
     this.childrenNum = childrenNum;
     this.feInfo = feInfo;
+    this.fcInfo = fcInfo;
     this.storagePolicy = storagePolicy;
     this.ecPolicy = ecPolicy;
   }
@@ -142,6 +145,11 @@ public class HdfsNamedFileStatus extends FileStatus implements HdfsFileStatus {
   @Override
   public FileEncryptionInfo getFileEncryptionInfo() {
     return feInfo;
+  }
+
+  @Override
+  public FileCompressionInfo getFileCompressionInfo() {
+    return fcInfo;
   }
 
   /**

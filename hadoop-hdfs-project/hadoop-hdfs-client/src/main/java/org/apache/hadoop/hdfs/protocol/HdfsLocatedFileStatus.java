@@ -23,6 +23,7 @@ import java.util.EnumSet;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
@@ -45,6 +46,7 @@ public class HdfsLocatedFileStatus
   private byte[] uSymlink; // symlink target encoded in java UTF8/null
   private final long fileId;
   private final FileEncryptionInfo feInfo;
+  private final FileCompressionInfo fcInfo;
   private final ErasureCodingPolicy ecPolicy;
 
   // Used by dir, not including dot and dotdot. Always zero for a regular file.
@@ -79,7 +81,7 @@ public class HdfsLocatedFileStatus
                         FsPermission permission, EnumSet<Flags> flags,
                         String owner, String group,
                         byte[] symlink, byte[] path, long fileId,
-                        int childrenNum, FileEncryptionInfo feInfo,
+                        int childrenNum, FileEncryptionInfo feInfo, FileCompressionInfo fcInfo,
                         byte storagePolicy, ErasureCodingPolicy ecPolicy,
                         LocatedBlocks hdfsloc) {
     super(length, isdir, replication, blocksize, mtime, atime,
@@ -91,6 +93,7 @@ public class HdfsLocatedFileStatus
     this.fileId = fileId;
     this.childrenNum = childrenNum;
     this.feInfo = feInfo;
+    this.fcInfo = fcInfo;
     this.storagePolicy = storagePolicy;
     this.ecPolicy = ecPolicy;
     this.hdfsloc = hdfsloc;
@@ -154,6 +157,11 @@ public class HdfsLocatedFileStatus
   @Override
   public FileEncryptionInfo getFileEncryptionInfo() {
     return feInfo;
+  }
+
+  @Override
+  public FileCompressionInfo getFileCompressionInfo() {
+    return fcInfo;
   }
 
   /**

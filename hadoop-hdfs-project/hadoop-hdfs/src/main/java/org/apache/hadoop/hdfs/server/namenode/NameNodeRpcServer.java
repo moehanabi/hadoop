@@ -108,6 +108,7 @@ import org.apache.hadoop.hdfs.protocol.ECBlockGroupStats;
 import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.FSLimitException;
@@ -2281,6 +2282,38 @@ public class NameNodeRpcServer implements NamenodeProtocols {
       final long prevId) throws IOException {
     checkNNStartup();
     return namesystem.listReencryptionStatus(prevId);
+  }
+
+  @Override // ClientProtocol
+  public void createCompressionZone(String src, String codec)
+          throws IOException {
+    checkNNStartup();
+    namesystem.checkOperation(OperationCategory.WRITE);
+    final CacheEntry cacheEntry = RetryCache.waitForCompletion(retryCache);
+    if (cacheEntry != null && cacheEntry.isSuccess()) {
+      return;
+    }
+    boolean success = false;
+    try {
+      namesystem.createCompressionZone(src, codec, cacheEntry != null);
+      success = true;
+    } finally {
+      RetryCache.setState(cacheEntry, success);
+    }
+  }
+
+  @Override // ClientProtocol
+  public CompressionZone getCZForPath(String src)
+          throws IOException {
+    checkNNStartup();
+    return namesystem.getCZForPath(src);
+  }
+
+  @Override // ClientProtocol
+  public BatchedEntries<CompressionZone> listCompressionZones(
+          long prevId) throws IOException {
+    checkNNStartup();
+    return namesystem.listCompressionZones(prevId);
   }
 
   @Override // ClientProtocol

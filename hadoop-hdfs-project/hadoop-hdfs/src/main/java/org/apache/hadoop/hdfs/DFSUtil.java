@@ -1857,7 +1857,7 @@ public class DFSUtil {
    * @return HdfsFileStatus Flags
    */
   public static EnumSet<HdfsFileStatus.Flags> getFlags(
-      final boolean isEncrypted, final boolean isErasureCoded,
+      final boolean isEncrypted, final boolean isCompressed, final boolean isErasureCoded,
       boolean isSnapShottable, boolean hasAcl) {
     EnumSet<HdfsFileStatus.Flags> flags =
         EnumSet.noneOf(HdfsFileStatus.Flags.class);
@@ -1866,6 +1866,9 @@ public class DFSUtil {
     }
     if (isEncrypted) {
       flags.add(HdfsFileStatus.Flags.HAS_CRYPT);
+    }
+    if (isCompressed) {
+      flags.add(HdfsFileStatus.Flags.HAS_COMPRESS);
     }
     if (isErasureCoded) {
       flags.add(HdfsFileStatus.Flags.HAS_EC);

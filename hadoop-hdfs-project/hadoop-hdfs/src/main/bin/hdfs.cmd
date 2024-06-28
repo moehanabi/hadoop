@@ -59,7 +59,7 @@ if "%1" == "--loglevel" (
     )
   )
 
-  set hdfscommands=dfs namenode secondarynamenode journalnode zkfc datanode dfsadmin haadmin fsck balancer jmxget oiv oev fetchdt getconf groups snapshotDiff lsSnapshottableDir cacheadmin mover storagepolicies classpath crypto dfsrouter dfsrouteradmin debug
+  set hdfscommands=dfs namenode secondarynamenode journalnode zkfc datanode dfsadmin haadmin fsck balancer jmxget oiv oev fetchdt getconf groups snapshotDiff lsSnapshottableDir cacheadmin mover storagepolicies classpath crypto compress dfsrouter dfsrouteradmin debug
   for %%i in ( %hdfscommands% ) do (
     if %hdfs-command% == %%i set hdfscommand=true
   )
@@ -179,6 +179,10 @@ goto :eof
   set CLASS=org.apache.hadoop.hdfs.tools.CryptoAdmin
   goto :eof
 
+:compress
+  set CLASS=org.apache.hadoop.hdfs.tools.CompressAdmin
+  goto :eof
+
 :dfsrouter
   set CLASS=org.apache.hadoop.hdfs.server.federation.router.DFSRouter
   set HADOOP_OPTS=%HADOOP_OPTS% %HADOOP_ROUTER_OPTS%
@@ -249,6 +253,7 @@ goto :eof
   @echo 						Use -help to see options
   @echo   cacheadmin           configure the HDFS cache
   @echo   crypto               configure HDFS encryption zones
+  @echo   compress             configure HDFS compression zones
   @echo   mover                run a utility to move block replicas across storage types
   @echo   storagepolicies      list/get/set block storage policies
   @echo.

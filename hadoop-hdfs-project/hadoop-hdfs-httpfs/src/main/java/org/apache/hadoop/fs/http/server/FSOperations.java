@@ -170,6 +170,9 @@ public final class FSOperations {
     if (fileStatus.getPermission().getEncryptedBit()) {
       json.put(HttpFSFileSystem.ENC_BIT_JSON, true);
     }
+    if (fileStatus.getPermission().getCompressedBit()) {
+      json.put(HttpFSFileSystem.COM_BIT_JSON, true);
+    }
     if (fileStatus.getPermission().getErasureCodedBit()) {
       json.put(HttpFSFileSystem.EC_BIT_JSON, true);
     }

@@ -620,6 +620,7 @@ public final class FSImageFormatPBINode {
         dir.rootDir.addXAttrFeature(f);
       }
       dir.addRootDirToEncryptionZone(f);
+      dir.addRootDirToCompressionZone(f);
     }
   }
 

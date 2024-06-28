@@ -234,7 +234,7 @@ public final class FederationUtil {
       int children) {
     // Get flags to set in new FileStatus.
     EnumSet<HdfsFileStatus.Flags> flags =
-        DFSUtil.getFlags(dirStatus.isEncrypted(), dirStatus.isErasureCoded(),
+        DFSUtil.getFlags(dirStatus.isEncrypted(), dirStatus.isCompressed(), dirStatus.isErasureCoded(),
             dirStatus.isSnapshotEnabled(), dirStatus.hasAcl());
     EnumSet.noneOf(HdfsFileStatus.Flags.class);
     return new HdfsFileStatus.Builder().atime(dirStatus.getAccessTime())

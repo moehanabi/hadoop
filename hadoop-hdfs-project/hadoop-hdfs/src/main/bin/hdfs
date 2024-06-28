@@ -36,6 +36,7 @@ function hadoop_usage
   hadoop_add_subcommand "cacheadmin" admin "configure the HDFS cache"
   hadoop_add_subcommand "classpath" client "prints the class path needed to get the hadoop jar and the required libraries"
   hadoop_add_subcommand "crypto" admin "configure HDFS encryption zones"
+  hadoop_add_subcommand "compress" admin "configure HDFS compression zones"
   hadoop_add_subcommand "datanode" daemon "run a DFS datanode"
   hadoop_add_subcommand "debug" admin "run a Debug Admin to execute HDFS debug commands"
   hadoop_add_subcommand "dfs" client "run a filesystem command on the file system"
@@ -92,6 +93,9 @@ function hdfscmd_case
     ;;
     crypto)
       HADOOP_CLASSNAME=org.apache.hadoop.hdfs.tools.CryptoAdmin
+    ;;
+    compress)
+      HADOOP_CLASSNAME=org.apache.hadoop.hdfs.tools.CompressAdmin
     ;;
     datanode)
       HADOOP_SUBCMD_SUPPORTDAEMONIZATION="true"

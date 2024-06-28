@@ -363,6 +363,29 @@ message CipherOptionProto {
 }
 
 /**
+ * Compression information for a file.
+ */
+message FileCompressionInfoProto {
+  required string compressionCodec = 1;
+}
+
+/**
+ * Compression information for an individual
+ * file within an compression zone
+ */
+message PerFileCompressionInfoProto {
+  required string compressionCodec = 1;
+}
+
+/**
+ * Compression information for an compression
+ * zone
+ */
+message ZoneCompressionInfoProto {
+  required string compressionCodec = 1;
+}
+
+/**
  * A set of file blocks and their locations.
  */
 message LocatedBlocksProto {
@@ -375,6 +398,9 @@ message LocatedBlocksProto {
 
   // Optional field for erasure coding
   optional ErasureCodingPolicyProto ecPolicy = 7;
+
+  // Optional field for compression coding
+  optional FileCompressionInfoProto fileCompressionInfo = 8;
 }
 
 /**
@@ -447,6 +473,7 @@ message HdfsFileStatusProto {
     HAS_CRYPT = 0x02; // encrypted
     HAS_EC    = 0x04; // erasure coded
     SNAPSHOT_ENABLED    = 0x08; // SNAPSHOT ENABLED
+    HAS_COMPRESS = 0x10; // compressed
   }
   required FileType fileType = 1;
   required bytes path = 2;          // local name of inode encoded java UTF8
@@ -478,6 +505,9 @@ message HdfsFileStatusProto {
 
   // Set of flags
   optional uint32 flags = 18 [default = 0];
+
+  // Optional field for file compression
+  optional FileCompressionInfoProto fileCompressionInfo = 19;
 }
 
 /**

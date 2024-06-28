@@ -91,9 +91,7 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_QUOTA_BY_STORAGETYPE_ENAB
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_QUOTA_BY_STORAGETYPE_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PROTECTED_SUBDIRECTORIES_ENABLE;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PROTECTED_SUBDIRECTORIES_ENABLE_DEFAULT;
-import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.CRYPTO_XATTR_ENCRYPTION_ZONE;
-import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.SECURITY_XATTR_UNREADABLE_BY_SUPERUSER;
-import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.XATTR_SATISFY_STORAGE_POLICY;
+import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.*;
 import static org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot.CURRENT_STATE_ID;
 
 /**
@@ -296,6 +294,8 @@ public class FSDirectory implements Closeable {
 
   @VisibleForTesting
   public final EncryptionZoneManager ezManager;
+  @VisibleForTesting
+  public final CompressionZoneManager czManager;
 
   /**
    * Caches frequently used file names used in {@link INode} to reuse 
@@ -409,6 +409,7 @@ public class FSDirectory implements Closeable {
     namesystem = ns;
     this.editLog = ns.getEditLog();
     ezManager = new EncryptionZoneManager(this, conf);
+    czManager = new CompressionZoneManager(this, conf);
 
     this.quotaInitThreads = conf.getInt(
         DFSConfigKeys.DFS_NAMENODE_QUOTA_INIT_THREADS_KEY,
@@ -1480,6 +1481,7 @@ public class FSDirectory implements Closeable {
       if (!inode.isSymlink()) {
         final XAttrFeature xaf = inode.getXAttrFeature();
         addEncryptionZone((INodeWithAdditionalFields) inode, xaf);
+        addCompressionZone((INodeWithAdditionalFields) inode, xaf);
         StoragePolicySatisfyManager spsManager =
             namesystem.getBlockManager().getSPSManager();
         if (spsManager != null && spsManager.isEnabled()) {
@@ -1529,13 +1531,40 @@ public class FSDirectory implements Closeable {
           "EZ XAttr " + xattr.getName() + " dir:" + inode.getFullPathName());
     }
   }
-  
+
+  private void addCompressionZone(INodeWithAdditionalFields inode,
+                                 XAttrFeature xaf) {
+    if (xaf == null) {
+      return;
+    }
+    XAttr xattr = xaf.getXAttr(COMPRESS_XATTR_COMPRESSION_ZONE);
+    if (xattr == null) {
+      return;
+    }
+    try {
+      final HdfsProtos.ZoneCompressionInfoProto czProto =
+              HdfsProtos.ZoneCompressionInfoProto.parseFrom(xattr.getValue());
+      czManager.unprotectedAddCompressionZone(inode.getId(), czProto.getCompressionCodec());
+    } catch (InvalidProtocolBufferException e) {
+      NameNode.LOG.warn("Error parsing protocol buffer of " +
+              "CZ XAttr " + xattr.getName() + " dir:" + inode.getFullPathName());
+    }
+  }
+
   /**
    * This is to handle encryption zone for rootDir when loading from
    * fsimage, and should only be called during NN restart.
    */
   public final void addRootDirToEncryptionZone(XAttrFeature xaf) {
     addEncryptionZone(rootDir, xaf);
+  }
+
+  /**
+   * This is to handle compression zone for rootDir when loading from
+   * fsimage, and should only be called during NN restart.
+   */
+  public final void addRootDirToCompressionZone(XAttrFeature xaf) {
+    addCompressionZone(rootDir, xaf);
   }
 
   /**
@@ -1547,6 +1576,7 @@ public class FSDirectory implements Closeable {
         if (inode != null && inode instanceof INodeWithAdditionalFields) {
           inodeMap.remove(inode);
           ezManager.removeEncryptionZone(inode.getId());
+          czManager.removeCompressionZone(inode.getId());
         }
       }
     }

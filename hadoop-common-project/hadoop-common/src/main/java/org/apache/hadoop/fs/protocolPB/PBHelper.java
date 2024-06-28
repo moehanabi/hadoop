@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.fs.protocolPB;
 
+import org.apache.hadoop.fs.FSProtos.FileStatusProto;
+import org.apache.hadoop.fs.FSProtos.FsPermissionProto;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -100,6 +102,7 @@ public final class PBHelper {
         FileStatus.attributes(
           (flags & FileStatusProto.Flags.HAS_ACL_VALUE) != 0,
           (flags & FileStatusProto.Flags.HAS_CRYPT_VALUE) != 0,
+          (flags & FileStatusProto.Flags.HAS_COMPRESS_VALUE) !=0,
           (flags & FileStatusProto.Flags.HAS_EC_VALUE) != 0,
           (flags & FileStatusProto.Flags.SNAPSHOT_ENABLED_VALUE) != 0));
     return fileStatus;
@@ -127,6 +130,7 @@ public final class PBHelper {
     int flags = 0;
     flags |= stat.hasAcl()         ? FileStatusProto.Flags.HAS_ACL_VALUE   : 0;
     flags |= stat.isEncrypted()    ? FileStatusProto.Flags.HAS_CRYPT_VALUE : 0;
+    flags |= stat.isCompressed()   ? FileStatusProto.Flags.HAS_COMPRESS_VALUE : 0;
     flags |= stat.isErasureCoded() ? FileStatusProto.Flags.HAS_EC_VALUE    : 0;
     flags |= stat.isSnapshotEnabled() ? FileStatusProto.Flags
         .SNAPSHOT_ENABLED_VALUE : 0;

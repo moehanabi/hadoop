@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
@@ -39,6 +40,7 @@ class LocatedBlockBuilder {
   protected LocatedBlock last;
   protected boolean lastComplete;
   protected FileEncryptionInfo feInfo;
+  protected FileCompressionInfo fcInfo;
   private final int maxBlocks;
   protected ErasureCodingPolicy ecPolicy;
 
@@ -92,6 +94,11 @@ class LocatedBlockBuilder {
     return this;
   }
 
+  LocatedBlockBuilder compression(FileCompressionInfo fileCompressionInfo) {
+    fcInfo = fileCompressionInfo;
+    return this;
+  }
+
   LocatedBlockBuilder erasureCoding(ErasureCodingPolicy codingPolicy) {
     ecPolicy = codingPolicy;
     return this;
@@ -103,7 +110,7 @@ class LocatedBlockBuilder {
 
   LocatedBlocks build() {
     return new LocatedBlocks(flen, isUC, blocks, last,
-        lastComplete, feInfo, ecPolicy);
+        lastComplete, feInfo, fcInfo, ecPolicy);
   }
 
 }

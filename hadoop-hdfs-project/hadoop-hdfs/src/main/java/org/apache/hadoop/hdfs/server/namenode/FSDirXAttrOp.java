@@ -46,6 +46,7 @@ import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.CRYPTO_XA
 import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.SECURITY_XATTR_UNREADABLE_BY_SUPERUSER;
 import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.XATTR_SATISFY_STORAGE_POLICY;
 import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.CRYPTO_XATTR_FILE_ENCRYPTION_INFO;
+import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.COMPRESS_XATTR_COMPRESSION_ZONE;
 
 class FSDirXAttrOp {
   private static final XAttr KEYID_XATTR =
@@ -313,6 +314,19 @@ class FSDirXAttrOp {
           fsd.ezManager.getReencryptionStatus()
               .updateZoneStatus(inode.getId(), iip.getPath(), reProto);
         }
+      }
+
+      if (COMPRESS_XATTR_COMPRESSION_ZONE.equals(xaName)) {
+        final HdfsProtos.ZoneCompressionInfoProto czProto =
+                HdfsProtos.ZoneCompressionInfoProto.parseFrom(xattr.getValue());
+        fsd.czManager.addCompressionZone(inode.getId(),
+                czProto.getCompressionCodec());
+
+//        if (ecProto.hasReencryptionProto()) {
+//          ReencryptionInfoProto reProto = ecProto.getReencryptionProto();
+//          fsd.ezManager.getReencryptionStatus()
+//                  .updateZoneStatus(inode.getId(), iip.getPath(), reProto);
+//        }
       }
 
       // Add inode id to movement queue if xattrs contain satisfy xattr.

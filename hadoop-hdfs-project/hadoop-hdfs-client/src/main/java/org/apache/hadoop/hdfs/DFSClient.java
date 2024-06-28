@@ -71,6 +71,7 @@ import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileChecksum;
 import org.apache.hadoop.fs.FileEncryptionInfo;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsServerDefaults;
@@ -121,7 +122,9 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.EncryptionZoneIterator;
+import org.apache.hadoop.hdfs.protocol.CompressionZoneIterator;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
@@ -959,6 +962,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
   public HdfsDataInputStream createWrappedInputStream(DFSInputStream dfsis)
       throws IOException {
     FileEncryptionInfo feInfo = dfsis.getFileEncryptionInfo();
+    FileCompressionInfo fcInfo = dfsis.getFileCompressionInfo();
     if (feInfo != null) {
       CryptoInputStream cryptoIn;
       try (TraceScope ignored = getTracer().newScope("decryptEDEK")) {
@@ -966,19 +970,21 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
             getKeyProvider(), feInfo, getConfiguration());
       }
       return new HdfsDataInputStream(cryptoIn);
-    } else {
-      // No FileEncryptionInfo so no encryption.
-//      return new HdfsDataInputStream(dfsis);
+    } else if (fcInfo != null) {
+      System.out.println("fcInfo: " + fcInfo);
       final int compressSize = conf.getInt("io.compression.codec.snappy.buffersize", 256 * 1024);
       try {
         final CompressionCodec codec = (CompressionCodec)
-                ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress.SnappyCodec"), conf);
+                ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
         final CompressInputStream compressIn =
                 new CompressInputStream(dfsis, codec, compressSize, getXAttr(dfsis.getSrc(), "user.uncompressedIndex"), getXAttr(dfsis.getSrc(), "user.compressedIndex"));
         return new HdfsDataInputStream(compressIn);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
       }
+    } else {
+      // No FileEncryptionInfo so no encryption.
+      return new HdfsDataInputStream(dfsis);
     }
   }
 
@@ -998,6 +1004,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
   public HdfsDataOutputStream createWrappedOutputStream(DFSOutputStream dfsos,
       FileSystem.Statistics statistics, long startPos) throws IOException {
     final FileEncryptionInfo feInfo = dfsos.getFileEncryptionInfo();
+    final FileCompressionInfo fcInfo = dfsos.getFileCompressionInfo();
     if (feInfo != null) {
       // File is encrypted, wrap the stream in a crypto stream.
       // Currently only one version, so no special logic based on the version #
@@ -1016,11 +1023,8 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
           new CryptoOutputStream(dfsos, codec,
               decrypted.getMaterial(), feInfo.getIV(), startPos);
       return new HdfsDataOutputStream(cryptoOut, statistics, startPos);
-    } else {
-      // No FileEncryptionInfo present so no encryption.
-//      return new HdfsDataOutputStream(dfsos, statistics, startPos);
-//      ZlibFactory.setCompressionLevel(conf, ZlibCompressor.CompressionLevel.BEST_COMPRESSION);
-//      ZlibFactory.setNativeZlibLoaded(false);
+    } else if (fcInfo != null) {
+      System.out.println("fcInfo: " + fcInfo);
       final int compressSize = conf.getInt("io.compression.codec.snappy.buffersize", 256 * 1024);
       class ClientCompressIndexWriter implements CompressIndexWriter {
 
@@ -1044,7 +1048,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
 
       try {
         final CompressionCodec codec = (CompressionCodec)
-                ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress.SnappyCodec"), conf);
+                ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
         final ClientCompressIndexWriter compressIndexWriter = new ClientCompressIndexWriter();
         final CompressOutputStream compressOut =
                 new CompressOutputStream(dfsos, codec, compressSize, compressIndexWriter);
@@ -1052,6 +1056,9 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
       }
+    } else {
+      // No FileEncryptionInfo present so no encryption.
+      return new HdfsDataOutputStream(dfsos, statistics, startPos);
     }
   }
 
@@ -2860,6 +2867,34 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       throws IOException {
     checkOpen();
     return new ReencryptionStatusIterator(namenode, tracer);
+  }
+
+  public void createCompressionZone(String src, String codec)
+          throws IOException {
+    checkOpen();
+    try (TraceScope ignored = newPathTraceScope("createCompressionZone", src)) {
+      namenode.createCompressionZone(src, codec);
+    } catch (RemoteException re) {
+      throw re.unwrapRemoteException(AccessControlException.class,
+              SafeModeException.class,
+              UnresolvedPathException.class);
+    }
+  }
+
+  public CompressionZone getCZForPath(String src) throws IOException {
+    checkOpen();
+    try (TraceScope ignored = newPathTraceScope("getCZForPath", src)) {
+      return namenode.getCZForPath(src);
+    } catch (RemoteException re) {
+      throw re.unwrapRemoteException(AccessControlException.class,
+              UnresolvedPathException.class);
+    }
+  }
+
+  public RemoteIterator<CompressionZone> listCompressionZones()
+          throws IOException {
+    checkOpen();
+    return new CompressionZoneIterator(namenode, tracer);
   }
 
   public void setErasureCodingPolicy(String src, String ecPolicyName)

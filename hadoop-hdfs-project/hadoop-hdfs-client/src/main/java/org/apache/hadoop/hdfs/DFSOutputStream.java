@@ -28,14 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.crypto.CryptoProtocolVersion;
-import org.apache.hadoop.fs.CanSetDropBehind;
-import org.apache.hadoop.fs.CreateFlag;
-import org.apache.hadoop.fs.FSOutputSummer;
-import org.apache.hadoop.fs.FileAlreadyExistsException;
-import org.apache.hadoop.fs.FileEncryptionInfo;
-import org.apache.hadoop.fs.ParentNotDirectoryException;
-import org.apache.hadoop.fs.StreamCapabilities;
-import org.apache.hadoop.fs.Syncable;
+import org.apache.hadoop.fs.*;
 import org.apache.hadoop.fs.impl.StoreImplementationUtils;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.client.HdfsClientConfigKeys;
@@ -125,6 +118,7 @@ public class DFSOutputStream extends FSOutputSummer
   private final EnumSet<AddBlockFlag> addBlockFlags;
   protected final AtomicReference<CachingStrategy> cachingStrategy;
   private FileEncryptionInfo fileEncryptionInfo;
+  private FileCompressionInfo fileCompressionInfo;
   private int writePacketSize;
 
   /** Use {@link ByteArrayManager} to create buffer for non-heartbeat packets.*/
@@ -195,6 +189,7 @@ public class DFSOutputStream extends FSOutputSummer
     this.blockSize = stat.getBlockSize();
     this.blockReplication = stat.getReplication();
     this.fileEncryptionInfo = stat.getFileEncryptionInfo();
+    this.fileCompressionInfo = stat.getFileCompressionInfo();
     this.cachingStrategy = new AtomicReference<>(
         dfsClient.getDefaultWriteCachingStrategy());
     this.addBlockFlags = EnumSet.noneOf(AddBlockFlag.class);
@@ -335,6 +330,7 @@ public class DFSOutputStream extends FSOutputSummer
     boolean toNewBlock = flags.contains(CreateFlag.NEW_BLOCK);
 
     this.fileEncryptionInfo = stat.getFileEncryptionInfo();
+    this.fileCompressionInfo = stat.getFileCompressionInfo();
 
     // The last partial block of the file has to be filled.
     if (!toNewBlock && lastBlock != null) {
@@ -1009,6 +1005,13 @@ public class DFSOutputStream extends FSOutputSummer
    */
   public FileEncryptionInfo getFileEncryptionInfo() {
     return fileEncryptionInfo;
+  }
+
+  /**
+   * @return the FileEncryptionInfo for this stream, or null if not encrypted.
+   */
+  public FileCompressionInfo getFileCompressionInfo() {
+    return fileCompressionInfo;
   }
 
   /**

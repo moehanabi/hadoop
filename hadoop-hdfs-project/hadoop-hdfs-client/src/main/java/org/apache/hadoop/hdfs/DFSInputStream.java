@@ -57,6 +57,7 @@ import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.FSExceptionMessages;
 import org.apache.hadoop.fs.FSInputStream;
 import org.apache.hadoop.fs.FileEncryptionInfo;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.HasEnhancedByteBufferAccess;
 import org.apache.hadoop.fs.ReadOption;
 import org.apache.hadoop.fs.StorageType;
@@ -129,6 +130,7 @@ public class DFSInputStream extends FSInputStream
   protected LocatedBlocks locatedBlocks = null;
   private long lastBlockBeingWrittenLength = 0;
   private FileEncryptionInfo fileEncryptionInfo = null;
+  private FileCompressionInfo fileCompressionInfo = null;
   protected CachingStrategy cachingStrategy;
   // this is volatile because it will be polled outside the lock,
   // but still only updated within the lock
@@ -271,6 +273,7 @@ public class DFSInputStream extends FSInputStream
     locatedBlocks = locatedBlocksToSet;
     lastBlockBeingWrittenLength = lastBlockLength;
     fileEncryptionInfo = locatedBlocks.getFileEncryptionInfo();
+    fileCompressionInfo = locatedBlocks.getFileCompressionInfo();
     setLastRefreshedBlocksAt();
   }
 
@@ -1751,6 +1754,12 @@ public class DFSInputStream extends FSInputStream
   public FileEncryptionInfo getFileEncryptionInfo() {
     synchronized(infoLock) {
       return fileEncryptionInfo;
+    }
+  }
+
+  public FileCompressionInfo getFileCompressionInfo() {
+    synchronized(infoLock) {
+      return fileCompressionInfo;
     }
   }
 

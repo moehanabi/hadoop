@@ -33,6 +33,7 @@ import "hdfs.proto";
 import "acl.proto";
 import "xattr.proto";
 import "encryption.proto";
+import "compression.proto";
 import "inotify.proto";
 import "erasurecoding.proto";
 import "HAServiceProtocol.proto";
@@ -1033,6 +1034,12 @@ service ClientNamenodeProtocol {
       returns(ListReencryptionStatusResponseProto);
   rpc getEZForPath(GetEZForPathRequestProto)
       returns(GetEZForPathResponseProto);
+  rpc createCompressionZone(CreateCompressionZoneRequestProto)
+      returns(CreateCompressionZoneResponseProto);
+  rpc listCompressionZones(ListCompressionZonesRequestProto)
+      returns(ListCompressionZonesResponseProto);
+  rpc getCZForPath(GetCZForPathRequestProto)
+      returns(GetCZForPathResponseProto);
   rpc setErasureCodingPolicy(SetErasureCodingPolicyRequestProto)
       returns(SetErasureCodingPolicyResponseProto);
   rpc unsetErasureCodingPolicy(UnsetErasureCodingPolicyRequestProto)

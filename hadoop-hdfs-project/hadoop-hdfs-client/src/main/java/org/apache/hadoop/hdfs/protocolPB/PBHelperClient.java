@@ -45,6 +45,7 @@ import org.apache.hadoop.fs.CacheFlag;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileEncryptionInfo;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FsServerDefaults;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.QuotaUsage;
@@ -85,6 +86,7 @@ import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.ECBlockGroupStats;
 import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyState;
@@ -144,6 +146,7 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Rollin
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SafeModeActionProto;
 import org.apache.hadoop.hdfs.protocol.proto.DataTransferProtos.ShortCircuitShmIdProto;
 import org.apache.hadoop.hdfs.protocol.proto.DataTransferProtos.ShortCircuitShmSlotProto;
+import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.CompressionZoneProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.EncryptionZoneProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.ReencryptActionProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.ReencryptionStateProto;
@@ -159,6 +162,7 @@ import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ContentSummaryProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.CorruptFileBlocksProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.CryptoProtocolVersionProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.DataEncryptionKeyProto;
+import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.FileCompressionInfoProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.DatanodeIDProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.DatanodeInfoProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.DatanodeInfoProto.AdminState;
@@ -188,6 +192,7 @@ import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.StorageReportProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.StorageTypeProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.StorageTypesProto;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ZoneEncryptionInfoProto;
+import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ZoneCompressionInfoProto;
 import org.apache.hadoop.hdfs.protocol.proto.InotifyProtos;
 import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.GetXAttrsResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.ListXAttrsResponseProto;
@@ -839,6 +844,7 @@ public class PBHelperClient {
             convertLocatedBlockProto(lb.getLastBlock()) : null,
         lb.getIsLastBlockComplete(),
         lb.hasFileEncryptionInfo() ? convert(lb.getFileEncryptionInfo()) : null,
+        lb.hasFileCompressionInfo() ? convert(lb.getFileCompressionInfo()) : null,
         lb.hasEcPolicy() ? convertErasureCodingPolicy(lb.getEcPolicy()) : null);
   }
 
@@ -1296,6 +1302,16 @@ public class PBHelperClient {
         ezKeyVersionName);
   }
 
+  public static HdfsProtos.FileCompressionInfoProto convert(
+          FileCompressionInfo info) {
+    if (info == null) {
+      return null;
+    }
+    return HdfsProtos.FileCompressionInfoProto.newBuilder()
+            .setCompressionCodec(info.getCompressionCodec())
+            .build();
+  }
+
   public static CryptoProtocolVersion convert(CryptoProtocolVersionProto
       proto) {
     switch(proto) {
@@ -1307,6 +1323,15 @@ public class PBHelperClient {
       version.setUnknownValue(proto.getNumber());
       return version;
     }
+  }
+
+  public static FileCompressionInfo convert(
+          HdfsProtos.FileCompressionInfoProto proto) {
+    if (proto == null) {
+      return null;
+    }
+    String codec = proto.getCompressionCodec();
+    return new FileCompressionInfo(codec);
   }
 
   public static List<XAttrProto> convertXAttrProto(
@@ -1349,6 +1374,11 @@ public class PBHelperClient {
     return new EncryptionZone(proto.getId(), proto.getPath(),
         convert(proto.getSuite()), convert(proto.getCryptoProtocolVersion()),
         proto.getKeyName());
+  }
+
+  public static CompressionZone convert(CompressionZoneProto proto) {
+    return new CompressionZone(proto.getId(), proto.getPath(),
+            proto.getCompressionCodec());
   }
 
   public static OpenFilesBatchResponseProto convert(OpenFileEntry
@@ -1733,6 +1763,9 @@ public class PBHelperClient {
         .feInfo(fs.hasFileEncryptionInfo()
             ? convert(fs.getFileEncryptionInfo())
             : null)
+        .fcInfo(fs.hasFileCompressionInfo()
+                ? convert(fs.getFileCompressionInfo())
+                : null)
         .storagePolicy(fs.hasStoragePolicy()
             ? (byte) fs.getStoragePolicy()
             : HdfsConstants.BLOCK_STORAGE_POLICY_ID_UNSPECIFIED)
@@ -1753,6 +1786,9 @@ public class PBHelperClient {
           break;
         case HAS_CRYPT:
           f.add(HdfsFileStatus.Flags.HAS_CRYPT);
+          break;
+        case HAS_COMPRESS:
+          f.add(HdfsFileStatus.Flags.HAS_COMPRESS);
           break;
         case HAS_EC:
           f.add(HdfsFileStatus.Flags.HAS_EC);
@@ -1779,6 +1815,9 @@ public class PBHelperClient {
     }
     if (p.getEncryptedBit()) {
       f.add(HdfsFileStatus.Flags.HAS_CRYPT);
+    }
+    if (p.getCompressedBit()) {
+      f.add(HdfsFileStatus.Flags.HAS_COMPRESS);
     }
     if (p.getErasureCodedBit()) {
       f.add(HdfsFileStatus.Flags.HAS_EC);
@@ -2218,6 +2257,9 @@ public class PBHelperClient {
     if (lb.getFileEncryptionInfo() != null) {
       builder.setFileEncryptionInfo(convert(lb.getFileEncryptionInfo()));
     }
+    if (lb.getFileCompressionInfo() != null) {
+      builder.setFileCompressionInfo(convert(lb.getFileCompressionInfo()));
+    }
     if (lb.getErasureCodingPolicy() != null) {
       builder.setEcPolicy(convertErasureCodingPolicy(
           lb.getErasureCodingPolicy()));
@@ -2326,6 +2368,9 @@ public class PBHelperClient {
     if (fs.getFileEncryptionInfo() != null) {
       builder.setFileEncryptionInfo(convert(fs.getFileEncryptionInfo()));
     }
+    if (fs.getFileCompressionInfo() != null) {
+      builder.setFileCompressionInfo(convert(fs.getFileCompressionInfo()));
+    }
     if (fs instanceof HdfsLocatedFileStatus) {
       final HdfsLocatedFileStatus lfs = (HdfsLocatedFileStatus) fs;
       LocatedBlocks locations = lfs.getLocatedBlocks();
@@ -2339,6 +2384,7 @@ public class PBHelperClient {
     }
     int flags = fs.hasAcl()   ? HdfsFileStatusProto.Flags.HAS_ACL_VALUE   : 0;
     flags |= fs.isEncrypted() ? HdfsFileStatusProto.Flags.HAS_CRYPT_VALUE : 0;
+    flags |= fs.isCompressed() ? HdfsFileStatusProto.Flags.HAS_COMPRESS_VALUE : 0;
     flags |= fs.isErasureCoded() ? HdfsFileStatusProto.Flags.HAS_EC_VALUE : 0;
     flags |= fs.isSnapshotEnabled() ? HdfsFileStatusProto.Flags
         .SNAPSHOT_ENABLED_VALUE : 0;
@@ -2877,6 +2923,14 @@ public class PBHelperClient {
         .build();
   }
 
+  public static CompressionZoneProto convert(CompressionZone zone) {
+    return CompressionZoneProto.newBuilder()
+            .setId(zone.getId())
+            .setPath(zone.getPath())
+            .setCompressionCodec(zone.getCodec())
+            .build();
+  }
+
   public static SlotId convert(ShortCircuitShmSlotProto slotId) {
     return new SlotId(convert(slotId.getShmId()),
         slotId.getSlotIdx());
@@ -3064,6 +3118,16 @@ public class PBHelperClient {
         ezKeyVersionName);
   }
 
+  public static HdfsProtos.PerFileCompressionInfoProto convertPerFileComInfo(
+          FileCompressionInfo info) {
+    if (info == null) {
+      return null;
+    }
+    return HdfsProtos.PerFileCompressionInfoProto.newBuilder()
+            .setCompressionCodec(info.getCompressionCodec())
+            .build();
+  }
+
   public static ReencryptionInfoProto convert(String ezkvn, Long submissionTime,
       boolean isCanceled, long numReencrypted, long numFailures,
       Long completionTime, String lastFile) {
@@ -3146,6 +3210,12 @@ public class PBHelperClient {
     if (proto.hasLastFile()) {
       builder.lastCheckpointFile(proto.getLastFile());
     }
+    return builder.build();
+  }
+
+  public static ZoneCompressionInfoProto convert(String codec) {
+    ZoneCompressionInfoProto.Builder builder =
+            ZoneCompressionInfoProto.newBuilder().setCompressionCodec(codec);
     return builder.build();
   }
 
