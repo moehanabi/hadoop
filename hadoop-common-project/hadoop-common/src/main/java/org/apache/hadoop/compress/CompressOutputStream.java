@@ -31,6 +31,8 @@ import org.apache.hadoop.io.compress.Compressor;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -56,8 +58,8 @@ public class CompressOutputStream extends FilterOutputStream implements
     private long currentCompressedIndex = 0;
     private long nextUncompressedIndex = 0;
     private long nextCompressedIndex = 0;
-    private final ArrayList<Long> uncompressedIndexes = new ArrayList<>();
-    private final ArrayList<Long> compressedIndexes = new ArrayList<>();
+    private ArrayList<Long> uncompressedIndexes;
+    private ArrayList<Long> compressedIndexes;
     /**
      * Input data buffer. The data starts at inBuffer.position() and ends at
      * inBuffer.limit().
@@ -74,15 +76,11 @@ public class CompressOutputStream extends FilterOutputStream implements
     private boolean closed;
     private boolean closeOutputStream;
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, int compressSize, CompressIndexWriter compressIndexWriter) throws IOException {
-        this(out, codec, 0, compressSize, compressIndexWriter);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
+        this(out, codec, streamOffset, compressSize, true, compressIndexWriter, uncompressedIndexesBytes, compressedIndexesBytes);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter) throws IOException {
-        this(out, codec, streamOffset, compressSize, true, compressIndexWriter);
-    }
-
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter) throws IOException {
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
         super(out);
 
         if (out == null || codec == null || compressIndexWriter == null) {
@@ -103,6 +101,28 @@ public class CompressOutputStream extends FilterOutputStream implements
 
         // for xattr:
         this.indexWriter = compressIndexWriter;
+
+        // for append (decide not use streamOffset temporarily):
+        getIndexes(uncompressedIndexesBytes, compressedIndexesBytes);
+        if(uncompressedIndexes.size() > 0){
+            currentUncompressedIndex = uncompressedIndexes.get(uncompressedIndexes.size()-1);
+            currentCompressedIndex = compressedIndexes.get(compressedIndexes.size()-1);
+        }
+    }
+
+    private void getIndexes(byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
+        if (uncompressedIndexesBytes == null || compressedIndexesBytes == null) {
+            uncompressedIndexes = new ArrayList<>();
+            compressedIndexes = new ArrayList<>();
+            return;
+        }
+        // Get uncompressedIndexes and compressedIndexes from xattr
+        try {
+            uncompressedIndexes = (ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(uncompressedIndexesBytes)).readObject();
+            compressedIndexes = (ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(compressedIndexesBytes)).readObject();
+        } catch (ClassNotFoundException e) {
+            throw new IOException("Error reading xattr for file");
+        }
     }
 
     public OutputStream getWrappedStream() {
