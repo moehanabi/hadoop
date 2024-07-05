@@ -413,6 +413,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 
     byte[] compressedBuffer = getByteArray();
     byte[] decompressedBuffer = getByteArray();
+    Decompressor decompressor = getDecompressor();
+
     int n = 0;
     while (n >= 0 && n < length) {
       long beginCompressed = getCompressedIndexBefore(position + n);
@@ -434,6 +436,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 
     returnByteArray(compressedBuffer);
     returnByteArray(decompressedBuffer);
+    returnDecompressor(decompressor);
 
     return n;
   }
@@ -921,6 +924,13 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
 
     return decompressor;
+  }
+
+  /** Return decompressor to pool */
+  private void returnDecompressor(Decompressor decompressor) {
+    if (decompressor != null) {
+      decompressorPool.add(decompressor);
+    }
   }
 
 //  /** Return decompressor to pool */
