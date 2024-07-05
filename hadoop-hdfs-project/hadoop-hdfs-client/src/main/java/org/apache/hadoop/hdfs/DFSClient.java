@@ -972,7 +972,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       return new HdfsDataInputStream(cryptoIn);
     } else if (fcInfo != null) {
       System.out.println("fcInfo: " + fcInfo);
-      final int compressSize = conf.getInt("io.compression.codec.snappy.buffersize", 256 * 1024);
+      final int compressSize = conf.getInt("io.compression.codec.buffersize", 256 * 1024);
       try {
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
@@ -1025,7 +1025,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       return new HdfsDataOutputStream(cryptoOut, statistics, startPos);
     } else if (fcInfo != null) {
       System.out.println("fcInfo: " + fcInfo);
-      final int compressSize = conf.getInt("io.compression.codec.snappy.buffersize", 256 * 1024);
+      final int compressSize = conf.getInt("io.compression.codec.buffersize", 256 * 1024);
       class ClientCompressIndexWriter implements CompressIndexWriter {
 
         @Override
