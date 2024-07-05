@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.statistics.IOStatisticsSource;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
+import org.apache.hadoop.util.StringUtils;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -54,7 +55,7 @@ import static org.apache.hadoop.fs.statistics.IOStatisticsSupport.retrieveIOStat
 //        CanSetDropBehind, CanSetReadahead, HasEnhancedByteBufferAccess,
 //        ReadableByteChannel, CanUnbuffer, StreamCapabilities,
 //        ByteBufferPositionedReadable, IOStatisticsSource
-public class CompressInputStream extends FilterInputStream implements Seekable, PositionedReadable, HasFileDescriptor, CanSetDropBehind, CanSetReadahead, IOStatisticsSource {
+public class CompressInputStream extends FilterInputStream implements Seekable, PositionedReadable, HasFileDescriptor, CanSetDropBehind, CanSetReadahead, CanUnbuffer, StreamCapabilities, IOStatisticsSource {
   private final byte[] oneByteBuf = new byte[1];
   private final CompressionCodec codec;
   private final Decompressor decompressor;
@@ -933,6 +934,11 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
   }
 
+  /** Clean Byte Array pool */
+  private void cleanByteArrayPool() {
+    byteArrayPool.clear();
+  }
+
 //  /** Return decompressor to pool */
 //  private void returnCompressionInputStream(CompressionInputStream decompressor) {
 //    if (decompressor != null) {
@@ -945,37 +951,38 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 //    return !closed;
 //  }
 
-//  private void cleanCompressionInputStreamPool() {
-//    decompressorPool.clear();
-//  }
+  private void cleanDecompressorPool() {
+    decompressorPool.clear();
+  }
 
-//  //@Override
-//  public void unbuffer() {
-//    cleanCompressionInputStreamPool();
-//    StreamCapabilitiesPolicy.unbuffer(in);
-//  }
+  @Override
+  public void unbuffer() {
+    cleanByteArrayPool();
+    cleanDecompressorPool();
+    StreamCapabilitiesPolicy.unbuffer(in);
+  }
 
-//  //@Override
-//  public boolean hasCapability(String capability) {
-//    switch (StringUtils.toLowerCase(capability)) {
-//      case StreamCapabilities.UNBUFFER:
-//        return true;
-//      case StreamCapabilities.READAHEAD:
-//      case StreamCapabilities.DROPBEHIND:
-//      case StreamCapabilities.READBYTEBUFFER:
-//      case StreamCapabilities.PREADBYTEBUFFER:
-//        if (!(in instanceof StreamCapabilities)) {
-//          throw new UnsupportedOperationException(in.getClass().getCanonicalName()
-//                  + " does not expose its stream capabilities.");
-//        }
-//        return ((StreamCapabilities) in).hasCapability(capability);
-//      case StreamCapabilities.IOSTATISTICS:
-//        return (in instanceof StreamCapabilities)
-//                && ((StreamCapabilities) in).hasCapability(capability);
-//      default:
-//        return false;
-//    }
-//  }
+  @Override
+  public boolean hasCapability(String capability) {
+    switch (StringUtils.toLowerCase(capability)) {
+      case StreamCapabilities.UNBUFFER:
+        return true;
+      case StreamCapabilities.READAHEAD:
+      case StreamCapabilities.DROPBEHIND:
+      case StreamCapabilities.READBYTEBUFFER:
+      case StreamCapabilities.PREADBYTEBUFFER:
+        if (!(in instanceof StreamCapabilities)) {
+          throw new UnsupportedOperationException(in.getClass().getCanonicalName()
+                  + " does not expose its stream capabilities.");
+        }
+        return ((StreamCapabilities) in).hasCapability(capability);
+      case StreamCapabilities.IOSTATISTICS:
+        return (in instanceof StreamCapabilities)
+                && ((StreamCapabilities) in).hasCapability(capability);
+      default:
+        return false;
+    }
+  }
 
   @Override
   public IOStatistics getIOStatistics() {
