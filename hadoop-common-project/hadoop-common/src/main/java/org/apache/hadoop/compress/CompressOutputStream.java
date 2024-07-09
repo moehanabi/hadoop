@@ -167,18 +167,16 @@ public class CompressOutputStream extends FilterOutputStream implements
     }
 
     public void compress(byte[] b, int off, int len) throws IOException {
-        // Sanity checks
-        if (compressor.finished()) {
-            throw new IOException("write beyond end of stream");
-        }
         if ((off | len | (off + len) | (b.length - (off + len))) < 0) {
             throw new IndexOutOfBoundsException();
         } else if (len == 0) {
             return;
         }
 
+        compressor.reset();
         compressor.setInput(b, off, len);
-        int compressedLen = 0;
+        compressor.finish();
+        int compressedLen;
         while ((compressedLen = compressor.compress(compressedBuf, 0, compressedBuf.length)) > 0) {
             out.write(compressedBuf, 0, compressedLen);
             currentCompressedIndex += compressedLen;
@@ -196,6 +194,7 @@ public class CompressOutputStream extends FilterOutputStream implements
             } finally {
                 if (closeOutputStream) {
                     super.close();
+                    compressor.end();
                 }
 //                freeBuffers();
             }
