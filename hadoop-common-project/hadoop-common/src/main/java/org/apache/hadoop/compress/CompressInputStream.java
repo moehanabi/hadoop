@@ -632,8 +632,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
      * If data of target pos in the underlying stream has already been read
      * and decompressed in outBuffer, we just need to re-position outBuffer.
      */
-    if (pos <= getUncompressedIndexAfter(currentCompressedIndex) && pos >= (getUncompressedIndexAfter(currentCompressedIndex) - outBuffer.remaining())) {
-      int forward = (int) (pos - (getUncompressedIndexAfter(currentCompressedIndex) - outBuffer.remaining()));
+    if (pos <= currentUncompressedIndex && pos >= (currentUncompressedIndex - outBuffer.remaining())) {
+      int forward = (int) (pos - (currentUncompressedIndex - outBuffer.remaining()));
       if (forward > 0) {
         outBuffer.position(outBuffer.position() + forward);
       }
