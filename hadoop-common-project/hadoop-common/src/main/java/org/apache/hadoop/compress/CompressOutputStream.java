@@ -51,6 +51,7 @@ public class CompressOutputStream extends FilterOutputStream implements
     private byte[] compressedBuf;
 //    private int uncompressedBufOff = 0;
 //    private int uncompressedBufLen = 0;
+    private double compressionRatio;
 
     // for xattr:
     CompressIndexWriter indexWriter;
@@ -76,11 +77,11 @@ public class CompressOutputStream extends FilterOutputStream implements
     private boolean closed;
     private boolean closeOutputStream;
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
-        this(out, codec, streamOffset, compressSize, true, compressIndexWriter, uncompressedIndexesBytes, compressedIndexesBytes);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes, double compressionRatio) throws IOException {
+        this(out, codec, streamOffset, compressSize, true, compressIndexWriter, uncompressedIndexesBytes, compressedIndexesBytes, compressionRatio);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes, double compressionRatio) throws IOException {
         super(out);
 
         if (out == null || codec == null || compressIndexWriter == null) {
@@ -90,9 +91,10 @@ public class CompressOutputStream extends FilterOutputStream implements
         }
 
         this.codec = codec;
+        this.compressionRatio = compressionRatio;
 //        this.compressSize = compressSize;
         uncompressedDirectBuf = ByteBuffer.allocateDirect(compressSize);
-        uncompressedBuf = new byte[compressSize];
+        uncompressedBuf = new byte[compressSize + 1024];
         compressedBuf = new byte[compressSize];
         compressor = codec.createCompressor();
 
@@ -176,10 +178,24 @@ public class CompressOutputStream extends FilterOutputStream implements
         compressor.reset();
         compressor.setInput(b, off, len);
         compressor.finish();
+
         int compressedLen;
-        while ((compressedLen = compressor.compress(compressedBuf, 0, compressedBuf.length)) > 0) {
-            out.write(compressedBuf, 0, compressedLen);
-            currentCompressedIndex += compressedLen;
+        int totalCompressedLen = 0;
+        try {
+            while ((compressedLen = compressor.compress(compressedBuf, totalCompressedLen, compressedBuf.length - totalCompressedLen)) > 0) {
+                totalCompressedLen += compressedLen;
+            }
+            if (totalCompressedLen < len * compressionRatio) {
+                out.write(compressedBuf, 0, totalCompressedLen);
+                currentCompressedIndex += totalCompressedLen;
+            } else {
+                // If the compressed data is too large, just write the original data
+                out.write(b, off, len);
+                currentCompressedIndex += len;
+            }
+        } catch (Exception e) {
+            out.write(b, off, len);
+            currentCompressedIndex += len;
         }
     }
 

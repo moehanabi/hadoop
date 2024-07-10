@@ -289,8 +289,21 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
 
 //    streamOffset += n; // Read n bytes
+    final int originalBytes = (int) (getUncompressedIndexAfter(currentCompressedIndex) - currentUncompressedIndex);
+    if (originalBytes == toRead) {
+      // The data is not compressed, just swap the buffers.
+      ByteBuffer temp = inBuffer;
+      inBuffer = outBuffer;
+      outBuffer = temp;
+
+      inBuffer.clear();
+      outBuffer.flip();
+    } else {
+      // The data is compressed.
+      decompress(decompressor, inBuffer, outBuffer);
+    }
+
     currentCompressedIndex += n;
-    decompress(decompressor, inBuffer, outBuffer);
     currentUncompressedIndex += outBuffer.remaining();
 
     return n;
@@ -427,7 +440,28 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       long beginCompressed = getCompressedIndexBefore(position + n);
       long endCompressed = getCompressedIndexAfter(position + n);
       long beginUncompressed = getUncompressedIndexBefore(beginCompressed);
+      long endUncompressed = getUncompressedIndexBefore(endCompressed);
       long compressedLength = endCompressed - beginCompressed;
+      long uncompressedLength = endUncompressed - beginUncompressed;
+      if (compressedLength == uncompressedLength) {
+        // data is not compressed
+        long len;
+        if (beginUncompressed < position) {
+          // position is in the middle of the uncompressed data
+          final long start = beginCompressed + (position - beginUncompressed);
+          len = Math.min(uncompressedLength - (position - beginUncompressed), length - n);
+          len = ((PositionedReadable) in).read(start, buffer, offset + n, (int) len);
+        } else {
+          len = Math.min(uncompressedLength, length - n);
+          len = ((PositionedReadable) in).read(beginCompressed, buffer, offset + n, (int) len);
+        }
+        if (len <= 0) {
+          break;
+        }
+        n += len;
+        continue;
+      }
+
       int len = ((PositionedReadable) in).read(beginCompressed, compressedBuffer, 0, (int) compressedLength);
       if (len <= 0) {
         break;

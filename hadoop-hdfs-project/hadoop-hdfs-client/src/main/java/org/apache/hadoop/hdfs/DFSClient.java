@@ -1026,6 +1026,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     } else if (fcInfo != null) {
       System.out.println("fcInfo: " + fcInfo);
       final int compressSize = conf.getInt("io.compression.codec.buffersize", 256 * 1024);
+      final double compressionRatio = conf.getDouble("io.compression.ratio", 0.8);
       class ClientCompressIndexWriter implements CompressIndexWriter {
 
         @Override
@@ -1059,7 +1060,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
           compressedIndex = null;
         }
         final CompressOutputStream compressOut =
-                new CompressOutputStream(dfsos, codec, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex);
+                new CompressOutputStream(dfsos, codec, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex, compressionRatio);
         return new HdfsDataOutputStream(compressOut, statistics, startPos);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
