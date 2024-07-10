@@ -289,7 +289,10 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     }
 
 //    streamOffset += n; // Read n bytes
+    currentCompressedIndex += n;
     decompress(decompressor, inBuffer, outBuffer);
+    currentUncompressedIndex += outBuffer.remaining();
+
     return n;
   }
 
@@ -336,24 +339,24 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 
     final int compressedBytes = inBuffer.remaining();
     inBuffer.get(inBufferArray, 0, compressedBytes);
-    decompressor.reset();
-    decompressor.setInput(inBufferArray, 0, compressedBytes);
-    final int uncompressedBytes = decompressor.decompress(outBufferArray, 0, bufferSize);
+    final int uncompressedBytes = decompress(decompressor, inBufferArray, outBufferArray, compressedBytes);
     outBuffer.put(outBufferArray, 0, uncompressedBytes);
     inBuffer.clear();
     outBuffer.flip();
-    currentUncompressedIndex += uncompressedBytes;
-    currentCompressedIndex += compressedBytes;
 
     returnByteArray(inBufferArray);
     returnByteArray(outBufferArray);
-//    if (padding > 0) {
-//      /*
-//       * The plain text and cipher text have a 1:1 mapping, they start at the
-//       * same position.
-//       */
-//      outBuffer.position(padding);
-//    }
+  }
+
+  private int decompress(Decompressor decompressor, byte[] inBuffer,
+                          byte[] outBuffer, int compressedBytes) throws IOException {
+    int uncompressedBytes = 0;
+    decompressor.reset();
+    decompressor.setInput(inBuffer, 0, compressedBytes);
+    while (!decompressor.finished()) {
+      uncompressedBytes += decompressor.decompress(outBuffer, uncompressedBytes, outBuffer.length - uncompressedBytes);
+    }
+    return uncompressedBytes;
   }
 
 //  /**
