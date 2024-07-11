@@ -64,8 +64,8 @@ public class HdfsDataOutputStream extends FSDataOutputStream {
                               FileSystem.Statistics stats, long startPosition) throws IOException {
     super(out, stats, startPosition);
     Preconditions.checkArgument(
-            out.getWrappedStream() instanceof DFSOutputStream,
-            "CryptoOutputStream should wrap a DFSOutputStream");
+            out.getWrappedStream() instanceof DFSOutputStream || out.getWrappedStream() instanceof CryptoOutputStream,
+            "CompressOutputStream should wrap a DFSOutputStream");
   }
 
   /**

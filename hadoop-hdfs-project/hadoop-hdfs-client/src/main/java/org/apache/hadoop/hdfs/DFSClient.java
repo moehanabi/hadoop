@@ -963,28 +963,40 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       throws IOException {
     FileEncryptionInfo feInfo = dfsis.getFileEncryptionInfo();
     FileCompressionInfo fcInfo = dfsis.getFileCompressionInfo();
+    CryptoInputStream cryptoIn = null;
+
     if (feInfo != null) {
-      CryptoInputStream cryptoIn;
       try (TraceScope ignored = getTracer().newScope("decryptEDEK")) {
         cryptoIn = HdfsKMSUtil.createWrappedInputStream(dfsis,
-            getKeyProvider(), feInfo, getConfiguration());
+                getKeyProvider(), feInfo, getConfiguration());
       }
-      return new HdfsDataInputStream(cryptoIn);
-    } else if (fcInfo != null) {
+    }
+
+    if (fcInfo != null) {
+      CompressInputStream compressIn;
       System.out.println("fcInfo: " + fcInfo);
       final int compressSize = conf.getInt("io.compression.codec.buffersize", 256 * 1024);
       try {
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
-        final CompressInputStream compressIn =
-                new CompressInputStream(dfsis, codec, compressSize, getXAttr(dfsis.getSrc(), "user.uncompressedIndex"), getXAttr(dfsis.getSrc(), "user.compressedIndex"));
+        if (cryptoIn != null) {
+          // File is encrypted, wrap the crypto stream in a compress stream.
+          compressIn = new CompressInputStream(cryptoIn, codec, compressSize, getXAttr(dfsis.getSrc(), "user.uncompressedIndex"), getXAttr(dfsis.getSrc(), "user.compressedIndex"));
+        } else {
+          compressIn = new CompressInputStream(dfsis, codec, compressSize, getXAttr(dfsis.getSrc(), "user.uncompressedIndex"), getXAttr(dfsis.getSrc(), "user.compressedIndex"));
+        }
         return new HdfsDataInputStream(compressIn);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
       }
-    } else {
-      // No FileEncryptionInfo so no encryption.
+    }
+
+
+    if (cryptoIn == null){
+      // No FileCompressionInfo and no FileEncryptionInfo.
       return new HdfsDataInputStream(dfsis);
+    } else {
+      return new HdfsDataInputStream(cryptoIn);
     }
   }
 
@@ -1005,6 +1017,8 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       FileSystem.Statistics statistics, long startPos) throws IOException {
     final FileEncryptionInfo feInfo = dfsos.getFileEncryptionInfo();
     final FileCompressionInfo fcInfo = dfsos.getFileCompressionInfo();
+    CryptoOutputStream cryptoOut = null;
+
     if (feInfo != null) {
       // File is encrypted, wrap the stream in a crypto stream.
       // Currently only one version, so no special logic based on the version #
@@ -1019,11 +1033,11 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
         LOG.debug("Decrypted EDEK for file: {}, output stream: 0x{}",
             dfsos.getSrc(), Integer.toHexString(dfsos.hashCode()));
       }
-      final CryptoOutputStream cryptoOut =
-          new CryptoOutputStream(dfsos, codec,
+      cryptoOut = new CryptoOutputStream(dfsos, codec,
               decrypted.getMaterial(), feInfo.getIV(), startPos);
-      return new HdfsDataOutputStream(cryptoOut, statistics, startPos);
-    } else if (fcInfo != null) {
+    }
+
+    if (fcInfo != null) {
       System.out.println("fcInfo: " + fcInfo);
       final int compressSize = conf.getInt("io.compression.codec.buffersize", 256 * 1024);
       final double compressionRatio = conf.getDouble("io.compression.ratio", 0.8);
@@ -1059,15 +1073,26 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
           uncompressedIndex = null;
           compressedIndex = null;
         }
-        final CompressOutputStream compressOut =
-                new CompressOutputStream(dfsos, codec, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex, compressionRatio);
+
+        CompressOutputStream compressOut;
+        if (cryptoOut != null) {
+          // File is encrypted, wrap the crypto stream in a compress stream.
+          compressOut = new CompressOutputStream(cryptoOut, codec, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex, compressionRatio);
+        } else {
+          compressOut = new CompressOutputStream(dfsos, codec, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex, compressionRatio);
+        }
+
         return new HdfsDataOutputStream(compressOut, statistics, startPos);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException("Illegal codec!");
       }
-    } else {
-      // No FileEncryptionInfo present so no encryption.
+    }
+
+    if (cryptoOut == null) {
+      // No FileEncryptionInfo and no FileCompressionInfo.
       return new HdfsDataOutputStream(dfsos, statistics, startPos);
+    } else {
+      return new HdfsDataOutputStream(cryptoOut, statistics, startPos);
     }
   }
 

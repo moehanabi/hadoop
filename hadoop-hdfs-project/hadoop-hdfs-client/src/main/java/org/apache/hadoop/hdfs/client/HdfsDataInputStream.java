@@ -52,7 +52,7 @@ public class HdfsDataInputStream extends FSDataInputStream {
 
   public HdfsDataInputStream(CompressInputStream in) {
     super(in);
-    Preconditions.checkArgument(in.getWrappedStream() instanceof DFSInputStream,
+    Preconditions.checkArgument(in.getWrappedStream() instanceof DFSInputStream || in.getWrappedStream() instanceof CryptoInputStream,
             "CompressInputStream should wrap a DFSInputStream");
   }
 
@@ -61,7 +61,11 @@ public class HdfsDataInputStream extends FSDataInputStream {
       return (DFSInputStream) ((CryptoInputStream) in).getWrappedStream();
     }
     if (in instanceof CompressInputStream) {
-      return (DFSInputStream) ((CompressInputStream) in).getWrappedStream();
+      if (((CompressInputStream) in).getWrappedStream() instanceof CryptoInputStream) {
+        return (DFSInputStream) ((CryptoInputStream) ((CompressInputStream) in).getWrappedStream()).getWrappedStream();
+      } else {
+        return (DFSInputStream) ((CompressInputStream) in).getWrappedStream();
+      }
     }
     return (DFSInputStream) in;
   }
