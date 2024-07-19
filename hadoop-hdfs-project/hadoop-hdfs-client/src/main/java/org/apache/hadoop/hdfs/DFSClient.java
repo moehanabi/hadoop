@@ -36,6 +36,7 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.TreeMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -976,14 +977,22 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       CompressInputStream compressIn;
       System.out.println("fcInfo: " + fcInfo);
       final int compressSize = conf.getInt("io.compression.codec.buffersize", 256 * 1024);
+      ArrayList<Long> uncompressedIndex = new ArrayList<>();
+      ArrayList<Long> compressedIndex = new ArrayList<>();
+      try {
+        getCompressionIndex(dfsis.getSrc(), uncompressedIndex, compressedIndex);
+      } catch (IOException | ClassNotFoundException e) {
+        throw new IOException("Failed to get compression index!");
+      }
+
       try {
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
         if (cryptoIn != null) {
           // File is encrypted, wrap the crypto stream in a compress stream.
-          compressIn = new CompressInputStream(cryptoIn, codec, compressSize, getXAttr(dfsis.getSrc(), "user.uncompressedIndex"), getXAttr(dfsis.getSrc(), "user.compressedIndex"));
+          compressIn = new CompressInputStream(cryptoIn, codec, compressSize, uncompressedIndex, compressedIndex);
         } else {
-          compressIn = new CompressInputStream(dfsis, codec, compressSize, getXAttr(dfsis.getSrc(), "user.uncompressedIndex"), getXAttr(dfsis.getSrc(), "user.compressedIndex"));
+          compressIn = new CompressInputStream(dfsis, codec, compressSize, uncompressedIndex, compressedIndex);
         }
         return new HdfsDataInputStream(compressIn);
       } catch (ClassNotFoundException cnfe) {
@@ -1045,19 +1054,30 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
 
         @Override
         public void writeIndex(ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException {
-          for(int i = 0; i < uncompressedIndexes.size(); i++) {
+          for (int i = 0; i < uncompressedIndexes.size(); i++) {
             System.out.println("Uncompressed Index: " + uncompressedIndexes.get(i) + " Compressed Index: " + compressedIndexes.get(i));
           }
+          setIndexes("user.hdfs.compress.file.compression.index.uncompress.", uncompressedIndexes);
+          setIndexes("user.hdfs.compress.file.compression.index.compress.", compressedIndexes);
+        }
 
-          ByteArrayOutputStream uncompressedIndexBytes = new ByteArrayOutputStream();
-          ByteArrayOutputStream compressedIndexBytes = new ByteArrayOutputStream();
-          ObjectOutputStream uncompressedIndexObj = new ObjectOutputStream(uncompressedIndexBytes);
-          ObjectOutputStream compressedIndexObj = new ObjectOutputStream(compressedIndexBytes);
-          uncompressedIndexObj.writeObject(uncompressedIndexes);
-          compressedIndexObj.writeObject(compressedIndexes);
+        private void setIndexes(String xAttrPrefix, ArrayList<Long> indexes) throws IOException {
+          ByteArrayOutputStream indexBytes = new ByteArrayOutputStream();
+          ObjectOutputStream indexObj = new ObjectOutputStream(indexBytes);
+          indexObj.writeObject(indexes);
+          byte[] indexBytesArray = indexBytes.toByteArray();
+
+          final int xAttrSize = conf.getInt("dfs.namenode.fs-limits.max-xattr-size", 16384);
+          final int numberOfChunks = (int) Math.ceil((double) indexBytesArray.length / xAttrSize);
+
           EnumSet<XAttrSetFlag> flag = EnumSet.of(XAttrSetFlag.CREATE, XAttrSetFlag.REPLACE);
-          setXAttr(dfsos.getSrc(), "user.uncompressedIndex", uncompressedIndexBytes.toByteArray(), flag);
-          setXAttr(dfsos.getSrc(), "user.compressedIndex", compressedIndexBytes.toByteArray(), flag);
+          for (int i = 0; i < numberOfChunks; i++) {
+            int start = i * xAttrSize;
+            int length = Math.min(indexBytesArray.length - start, xAttrSize);
+            byte[] chunk = new byte[length];
+            System.arraycopy(indexBytesArray, start, chunk, 0, length);
+            setXAttr(dfsos.getSrc(), xAttrPrefix + (i + 1), chunk, flag);
+          }
         }
       }
 
@@ -1065,13 +1085,14 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
         final ClientCompressIndexWriter compressIndexWriter = new ClientCompressIndexWriter();
-        byte[] uncompressedIndex, compressedIndex;
+
+        ArrayList<Long> uncompressedIndex = new ArrayList<>();
+        ArrayList<Long> compressedIndex = new ArrayList<>();
         try {
-          uncompressedIndex = getXAttr(dfsos.getSrc(), "user.uncompressedIndex");
-          compressedIndex = getXAttr(dfsos.getSrc(), "user.compressedIndex");
-        } catch (IOException e) {
-          uncompressedIndex = null;
-          compressedIndex = null;
+          getCompressionIndex(dfsos.getSrc(), uncompressedIndex, compressedIndex);
+        } catch (IOException | ClassNotFoundException e) {
+          uncompressedIndex = new ArrayList<>();
+          compressedIndex = new ArrayList<>();
         }
 
         CompressOutputStream compressOut;
@@ -1094,6 +1115,41 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     } else {
       return new HdfsDataOutputStream(cryptoOut, statistics, startPos);
     }
+  }
+
+  private void getCompressionIndex(String src, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException, ClassNotFoundException {
+    Map<String, byte[]> xAttrs = getXAttrs(src);
+    TreeMap<Integer, byte[]> sortedUncompressXAttrs = new TreeMap<>();
+    TreeMap<Integer, byte[]> sortedCompressXAttrs = new TreeMap<>();
+
+    final String uncompressPrefix = "user.hdfs.compress.file.compression.index.uncompress.";
+    final String compressPrefix = "user.hdfs.compress.file.compression.index.compress.";
+    final int uncompressPrefixLen = uncompressPrefix.length();
+    final int compressPrefixLen = compressPrefix.length();
+    for (Map.Entry<String, byte[]> entry : xAttrs.entrySet()) {
+      if (entry.getKey().startsWith(uncompressPrefix)) {
+        sortedUncompressXAttrs.put(Integer.parseInt(entry.getKey().substring(uncompressPrefixLen)), entry.getValue());
+      } else if (entry.getKey().startsWith(compressPrefix)) {
+        sortedCompressXAttrs.put(Integer.parseInt(entry.getKey().substring(compressPrefixLen)), entry.getValue());
+      }
+    }
+
+    ByteArrayOutputStream uncompressedBos = new ByteArrayOutputStream();
+    ByteArrayOutputStream compressedBos = new ByteArrayOutputStream();
+    for (byte[] value : sortedUncompressXAttrs.values()) {
+      uncompressedBos.write(value);
+    }
+    for (byte[] value : sortedCompressXAttrs.values()) {
+      compressedBos.write(value);
+    }
+
+    byte[] uncompressedIndexBytes = uncompressedBos.toByteArray();
+    byte[] compressedIndexBytes = compressedBos.toByteArray();
+    uncompressedIndexes.addAll((ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(uncompressedIndexBytes)).readObject());
+    compressedIndexes.addAll((ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(compressedIndexBytes)).readObject());
+
+    uncompressedBos.close();
+    compressedBos.close();
   }
 
   public DFSInputStream open(String src) throws IOException {

@@ -103,12 +103,12 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   private long currentCompressedIndex = 0;
 
   public CompressInputStream(InputStream in, CompressionCodec codec,
-                           int bufferSize, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
-    this(in, codec, bufferSize, 0, uncompressedIndexesBytes, compressedIndexesBytes);
+                           int bufferSize, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException {
+    this(in, codec, bufferSize, 0, uncompressedIndexes, compressedIndexes);
   }
 
   public CompressInputStream(InputStream in, CompressionCodec codec,
-                             int bufferSize, long streamOffset, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
+                             int bufferSize, long streamOffset, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException {
     super(in);
     this.bufferSize = bufferSize;
     this.codec = codec;
@@ -119,7 +119,8 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     outBuffer = ByteBuffer.allocateDirect(this.bufferSize);
     decompressor = getDecompressor();
 
-    getIndexes(uncompressedIndexesBytes, compressedIndexesBytes);
+    this.uncompressedIndexes = uncompressedIndexes;
+    this.compressedIndexes = compressedIndexes;
     resetStreamOffset(streamOffset);
   }
 
@@ -143,16 +144,6 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       outBuffer.position(pos);
     }
 //    currentUncompressedIndex = streamOffset;
-  }
-
-  private void getIndexes(byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
-    // Get uncompressedIndexes and compressedIndexes from xattr
-    try {
-      uncompressedIndexes = (ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(uncompressedIndexesBytes)).readObject();
-      compressedIndexes = (ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(compressedIndexesBytes)).readObject();
-    } catch (ClassNotFoundException e) {
-      throw new IOException("Error reading xattr for file");
-    }
   }
 
   public InputStream getWrappedStream() {

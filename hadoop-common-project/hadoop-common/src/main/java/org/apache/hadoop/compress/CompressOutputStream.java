@@ -77,11 +77,11 @@ public class CompressOutputStream extends FilterOutputStream implements
     private boolean closed;
     private boolean closeOutputStream;
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes, double compressionRatio) throws IOException {
-        this(out, codec, streamOffset, compressSize, true, compressIndexWriter, uncompressedIndexesBytes, compressedIndexesBytes, compressionRatio);
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes, double compressionRatio) throws IOException {
+        this(out, codec, streamOffset, compressSize, true, compressIndexWriter, uncompressedIndexes, compressedIndexes, compressionRatio);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter, byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes, double compressionRatio) throws IOException {
+    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes, double compressionRatio) throws IOException {
         super(out);
 
         if (out == null || codec == null || compressIndexWriter == null) {
@@ -105,25 +105,11 @@ public class CompressOutputStream extends FilterOutputStream implements
         this.indexWriter = compressIndexWriter;
 
         // for append (decide not use streamOffset temporarily):
-        getIndexes(uncompressedIndexesBytes, compressedIndexesBytes);
-        if(uncompressedIndexes.size() > 0){
-            currentUncompressedIndex = uncompressedIndexes.get(uncompressedIndexes.size()-1);
-            currentCompressedIndex = compressedIndexes.get(compressedIndexes.size()-1);
-        }
-    }
-
-    private void getIndexes(byte[] uncompressedIndexesBytes, byte[] compressedIndexesBytes) throws IOException {
-        if (uncompressedIndexesBytes == null || compressedIndexesBytes == null) {
-            uncompressedIndexes = new ArrayList<>();
-            compressedIndexes = new ArrayList<>();
-            return;
-        }
-        // Get uncompressedIndexes and compressedIndexes from xattr
-        try {
-            uncompressedIndexes = (ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(uncompressedIndexesBytes)).readObject();
-            compressedIndexes = (ArrayList<Long>) new ObjectInputStream(new ByteArrayInputStream(compressedIndexesBytes)).readObject();
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Error reading xattr for file");
+        this.uncompressedIndexes = uncompressedIndexes;
+        this.compressedIndexes = compressedIndexes;
+        if(this.uncompressedIndexes.size() > 0){
+            currentUncompressedIndex = this.uncompressedIndexes.get(this.uncompressedIndexes.size()-1);
+            currentCompressedIndex = this.compressedIndexes.get(this.compressedIndexes.size()-1);
         }
     }
 
