@@ -3118,6 +3118,13 @@ public class PBHelperClient {
         ezKeyVersionName);
   }
 
+  public static FileCompressionInfo convert(HdfsProtos.PerFileCompressionInfoProto fileProto) {
+    if (fileProto == null) {
+      return null;
+    }
+    return new FileCompressionInfo(fileProto.getCompressionCodec());
+  }
+
   public static HdfsProtos.PerFileCompressionInfoProto convertPerFileComInfo(
           FileCompressionInfo info) {
     if (info == null) {

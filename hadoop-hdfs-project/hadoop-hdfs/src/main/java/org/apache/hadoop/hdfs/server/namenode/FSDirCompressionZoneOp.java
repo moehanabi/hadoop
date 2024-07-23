@@ -155,42 +155,25 @@ final class FSDirCompressionZoneOp {
    */
   static FileCompressionInfo getFileCompressionInfo(final FSDirectory fsd,
       final INodesInPath iip) throws IOException {
-    if (iip.isRaw() ||
-        !fsd.czManager.hasCreatedCompressionZone() ||
-        !iip.getLastINode().isFile()) {
+    if (iip.isRaw() || !iip.getLastINode().isFile()) {
       return null;
     }
     fsd.readLock();
     try {
-      CompressionZone compressionZone = getCZForPath(fsd, iip);
-      if (compressionZone == null) {
-        // not an compressed file
-        return null;
-      } else if(compressionZone.getPath() == null
-          || compressionZone.getPath().isEmpty()) {
-        if (NameNode.LOG.isDebugEnabled()) {
-          NameNode.LOG.debug("Compression zone " +
-              compressionZone.getPath() + " does not have a valid path.");
-        }
-      }
-
       XAttr fileXAttr = FSDirXAttrOp.unprotectedGetXAttrByPrefixedName(
           iip.getLastINode(), iip.getPathSnapshotId(),
               COMPRESS_XATTR_FILE_COMPRESSION_INFO);
       if (fileXAttr == null) {
         NameNode.LOG.warn("Could not find compression XAttr for file " +
-            iip.getPath() + " in compression zone " + compressionZone.getPath());
+            iip.getPath());
         return null;
       }
 
-      final String codec = compressionZone.getCodec();
       try {
         HdfsProtos.PerFileCompressionInfoProto fileProto =
             HdfsProtos.PerFileCompressionInfoProto.parseFrom(
                 fileXAttr.getValue());
-        //TODO
-//        return PBHelperClient.convert(fileProto, codec);
-        return new FileCompressionInfo(fileProto.getCompressionCodec());
+        return PBHelperClient.convert(fileProto);
       } catch (InvalidProtocolBufferException e) {
         throw new IOException("Could not parse file compression info for " +
             "inode " + iip.getPath(), e);
@@ -201,9 +184,7 @@ final class FSDirCompressionZoneOp {
   }
 
   /**
-   * If the file and compression key are valid, return the compression info,
-   * else throw a retry exception.  The startFile method generates the EDEK
-   * outside of the lock so the zone must be reverified.
+   * Used when creating a new file entry in the namespace.
    *
    * @param dir fsdirectory
    * @param iip inodes in the file path
