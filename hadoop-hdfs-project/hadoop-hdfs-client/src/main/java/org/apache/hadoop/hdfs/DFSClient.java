@@ -17,6 +17,10 @@
  */
 package org.apache.hadoop.hdfs;
 
+import static org.apache.hadoop.fs.CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_KEY;
+import static org.apache.hadoop.fs.CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
+import static org.apache.hadoop.fs.CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
+import static org.apache.hadoop.fs.CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_KEY;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_READS;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_CACHE_DROP_BEHIND_WRITES;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_CACHE_READAHEAD;
@@ -985,6 +989,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
         throw new IOException("Failed to get compression index!");
       }
 
+      setCompressionBufferSize(fcInfo.getCompressionCodec(), compressSize);
       try {
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
@@ -1081,6 +1086,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
         }
       }
 
+      setCompressionBufferSize(fcInfo.getCompressionCodec(), compressSize);
       try {
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
@@ -1115,6 +1121,30 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     } else {
       return new HdfsDataOutputStream(cryptoOut, statistics, startPos);
     }
+  }
+
+  private void setCompressionBufferSize(String codec, int compressSize) {
+    String bufferSizeKey = null;
+    switch (codec) {
+      case "Snappy":
+        bufferSizeKey = IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
+        break;
+      case "Lzo":
+        bufferSizeKey = IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
+        break;
+      case "ZStandard":
+        bufferSizeKey = IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_KEY;
+        break;
+      case "Lz4":
+        bufferSizeKey = IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_KEY;
+        break;
+      case "Gzip":
+      case "BZip2":
+      case "Deflate":
+      case "Default":
+      default:
+    }
+    if (bufferSizeKey != null) conf.setInt(bufferSizeKey, compressSize + 8192);
   }
 
   private void getCompressionIndex(String src, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException, ClassNotFoundException {
