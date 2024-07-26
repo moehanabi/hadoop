@@ -26,6 +26,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.crypto.CryptoProtocolVersion;
 import org.apache.hadoop.fs.BatchedRemoteIterator.BatchedEntries;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.PathIsNotEmptyDirectoryException;
 import org.apache.hadoop.ha.HAServiceProtocol;
 import org.apache.hadoop.hdfs.AddBlockFlag;
@@ -1178,6 +1179,9 @@ public interface ClientProtocol {
    */
   @Idempotent
   void setTimes(String src, long mtime, long atime) throws IOException;
+
+  void setFileCompressionInfo(String src, final FileCompressionInfo info,
+                              final XAttrSetFlag flag) throws IOException;
 
   /**
    * Create symlink to a file or directory.

@@ -123,7 +123,7 @@ final class FSDirCompressionZoneOp {
    * @param flag action when setting xattr. Either CREATE or REPLACE.
    * @throws IOException
    */
-  static void setFileCompressionInfo(final FSDirectory fsd,
+  static List<XAttr> setFileCompressionInfo(final FSDirectory fsd,
       final INodesInPath iip, final FileCompressionInfo info,
       final XAttrSetFlag flag) throws IOException {
     // Make the PB for the xattr
@@ -140,6 +140,7 @@ final class FSDirCompressionZoneOp {
     } finally {
       fsd.writeUnlock();
     }
+    return xAttrs;
   }
 
   /**

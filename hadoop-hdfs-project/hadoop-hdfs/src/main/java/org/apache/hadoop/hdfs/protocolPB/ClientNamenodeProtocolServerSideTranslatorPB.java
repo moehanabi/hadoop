@@ -397,6 +397,9 @@ public class ClientNamenodeProtocolServerSideTranslatorPB implements
   private static final SetTimesResponseProto VOID_SETTIMES_RESPONSE = 
   SetTimesResponseProto.newBuilder().build();
 
+  private static final SetFileCompressionInfoResponseProto VOID_SETFILECOMPRESSIONINFO_RESPONSE =
+  SetFileCompressionInfoResponseProto.newBuilder().build();
+
   private static final CreateSymlinkResponseProto VOID_CREATESYMLINK_RESPONSE = 
   CreateSymlinkResponseProto.newBuilder().build();
 
@@ -1134,6 +1137,17 @@ public class ClientNamenodeProtocolServerSideTranslatorPB implements
     try {
       server.setTimes(req.getSrc(), req.getMtime(), req.getAtime());
       return VOID_SETTIMES_RESPONSE;
+    } catch (IOException e) {
+      throw new ServiceException(e);
+    }
+  }
+
+  @Override
+  public SetFileCompressionInfoResponseProto setFileCompressionInfo(RpcController controller,
+                                                      SetFileCompressionInfoRequestProto req) throws ServiceException {
+    try {
+      server.setFileCompressionInfo(req.getSrc(), PBHelperClient.convert(req.getFileCompressionInfo()), PBHelperClient.convert(req.getFlag()));
+      return VOID_SETFILECOMPRESSIONINFO_RESPONSE;
     } catch (IOException e) {
       throw new ServiceException(e);
     }

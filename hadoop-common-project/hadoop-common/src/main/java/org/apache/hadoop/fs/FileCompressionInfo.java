@@ -33,6 +33,7 @@ public class FileCompressionInfo implements Serializable {
   private static final long serialVersionUID = 164020024006114548L;
 
   private final String compressionCodec;
+  private int maxBufferSize;
 
   /**
    * Create a FileCompressionInfo.
@@ -42,6 +43,13 @@ public class FileCompressionInfo implements Serializable {
   public FileCompressionInfo(final String codec) {
     checkNotNull(codec);
     this.compressionCodec = codec;
+    this.maxBufferSize = 0;
+  }
+
+  public FileCompressionInfo(final String codec, final int maxBufferSize) {
+    checkNotNull(codec);
+    this.compressionCodec = codec;
+    this.maxBufferSize = maxBufferSize;
   }
 
   /**
@@ -52,10 +60,18 @@ public class FileCompressionInfo implements Serializable {
     return compressionCodec;
   }
 
+  /**
+   * @return the maximum buffer size used by the codec.
+   */
+  public int getMaxBufferSize() {
+    return maxBufferSize;
+  }
+
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder("{")
         .append("compressionCodec: " + compressionCodec)
+        .append(", maxBufferSize: " + maxBufferSize)
         .append("}");
     return builder.toString();
   }
@@ -74,6 +90,7 @@ public class FileCompressionInfo implements Serializable {
   public String toStringStable() {
     StringBuilder builder = new StringBuilder("{")
         .append("compressionCodec: " + compressionCodec)
+        .append(", maxBufferSize: " + maxBufferSize)
         .append("}");
     return builder.toString();
   }

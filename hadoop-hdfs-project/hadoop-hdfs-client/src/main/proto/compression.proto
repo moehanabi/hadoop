@@ -32,6 +32,7 @@ option java_generate_equals_and_hash = true;
 package hadoop.hdfs;
 
 import "hdfs.proto";
+import "xattr.proto";
 
 message CreateCompressionZoneRequestProto {
   required string src = 1;
@@ -62,4 +63,13 @@ message GetCZForPathRequestProto {
 
 message GetCZForPathResponseProto {
     optional CompressionZoneProto zone = 1;
+}
+
+message SetFileCompressionInfoRequestProto {
+  required string src = 1;
+  required FileCompressionInfoProto fileCompressionInfo = 2;
+  required XAttrSetFlagProto flag = 3;
+}
+
+message SetFileCompressionInfoResponseProto { // void response
 }

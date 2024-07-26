@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.thirdparty.com.google.common.collect.Lists;
 import org.apache.hadoop.ipc.CallerContext;
 
@@ -1528,6 +1529,13 @@ public class NameNodeRpcServer implements NamenodeProtocols {
       throws IOException {
     checkNNStartup();
     namesystem.setTimes(src, mtime, atime);
+  }
+
+  @Override // ClientProtocol
+  public void setFileCompressionInfo(String src, final FileCompressionInfo info,
+                                final XAttrSetFlag flag) throws IOException {
+    checkNNStartup();
+    namesystem.setFileCompressionInfo(src, info, flag);
   }
 
   @Override // ClientProtocol

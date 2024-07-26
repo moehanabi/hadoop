@@ -1038,6 +1038,8 @@ service ClientNamenodeProtocol {
       returns(CreateCompressionZoneResponseProto);
   rpc listCompressionZones(ListCompressionZonesRequestProto)
       returns(ListCompressionZonesResponseProto);
+  rpc setFileCompressionInfo(SetFileCompressionInfoRequestProto)
+      returns(SetFileCompressionInfoResponseProto);
   rpc getCZForPath(GetCZForPathRequestProto)
       returns(GetCZForPathResponseProto);
   rpc setErasureCodingPolicy(SetErasureCodingPolicyRequestProto)

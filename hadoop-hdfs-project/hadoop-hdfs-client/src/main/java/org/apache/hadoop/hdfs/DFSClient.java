@@ -980,7 +980,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     if (fcInfo != null) {
       CompressInputStream compressIn;
       System.out.println("fcInfo: " + fcInfo);
-      final int compressSize = conf.getInt("io.compression.codec.buffersize", 256 * 1024);
+      final int compressSize = fcInfo.getMaxBufferSize();
       ArrayList<Long> uncompressedIndex = new ArrayList<>();
       ArrayList<Long> compressedIndex = new ArrayList<>();
       try {
@@ -1059,9 +1059,18 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
 
         @Override
         public void writeIndex(ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException {
-          for (int i = 0; i < uncompressedIndexes.size(); i++) {
+          int maxBufferSize = fcInfo.getMaxBufferSize();
+          for (int i = 1; i < uncompressedIndexes.size(); i++) {
             System.out.println("Uncompressed Index: " + uncompressedIndexes.get(i) + " Compressed Index: " + compressedIndexes.get(i));
+            if (uncompressedIndexes.get(i) - uncompressedIndexes.get(i - 1) > maxBufferSize) {
+              maxBufferSize = (int) (uncompressedIndexes.get(i) - uncompressedIndexes.get(i - 1));
+            }
           }
+          if (maxBufferSize > fcInfo.getMaxBufferSize()) {
+            System.out.println("Max Buffer Size: " + maxBufferSize);
+            namenode.setFileCompressionInfo(dfsos.getSrc(), new FileCompressionInfo(fcInfo.getCompressionCodec(), maxBufferSize), XAttrSetFlag.REPLACE);
+          }
+
           setIndexes("user.hdfs.compress.file.compression.index.uncompress.", uncompressedIndexes);
           setIndexes("user.hdfs.compress.file.compression.index.compress.", compressedIndexes);
         }

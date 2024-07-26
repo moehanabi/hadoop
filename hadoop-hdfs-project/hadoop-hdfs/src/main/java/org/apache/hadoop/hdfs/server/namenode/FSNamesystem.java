@@ -2271,6 +2271,41 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
   }
 
   /**
+   * stores the modification and access time for this inode.
+   * The access time is precise up to an hour. The transaction, if needed, is
+   * written to the edits log but is not flushed.
+   */
+  void setFileCompressionInfo(String src, final FileCompressionInfo info,
+                              final XAttrSetFlag flag) throws IOException {
+    final String operationName = "setFileCompressionInfo";
+    checkOperation(OperationCategory.WRITE);
+    final FSPermissionChecker pc = getPermissionChecker();
+
+    FSPermissionChecker.setOperationType(operationName);
+    INodesInPath iip;
+    dir.writeLock();
+    List<XAttr> xAttrs;
+    try {
+      iip = dir.resolvePath(pc, src, DirOp.WRITE);
+      // Write access is required to set access and modification times
+      if (dir.isPermissionEnabled()) {
+        dir.checkPathAccess(pc, iip, FsAction.WRITE);
+      }
+      final INode inode = iip.getLastINode();
+      if (inode == null) {
+        throw new FileNotFoundException("File/Directory " + iip.getPath() +
+                " does not exist.");
+      }
+      xAttrs = FSDirCompressionZoneOp.setFileCompressionInfo(dir, iip, info, flag);
+    } finally {
+      dir.writeUnlock();
+    }
+    if (xAttrs != null) {
+      dir.getEditLog().logSetXAttrs(src, xAttrs, false);
+    }
+  }
+
+  /**
    * Truncate file to a lower length.
    * Truncate cannot be reverted / recovered from as it causes data loss.
    * Truncation at block boundary is atomic, otherwise it requires

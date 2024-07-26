@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.BatchedRemoteIterator.BatchedEntries;
 import org.apache.hadoop.fs.CacheFlag;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FsServerDefaults;
 import org.apache.hadoop.fs.Options;
 import org.apache.hadoop.fs.Path;
@@ -1260,6 +1261,18 @@ public class RouterClientProtocol implements ClientProtocol {
     RemoteMethod method = new RemoteMethod("setTimes",
         new Class<?>[] {String.class, long.class, long.class},
         new RemoteParam(), mtime, atime);
+    rpcClient.invokeSequential(locations, method);
+  }
+
+  @Override
+  public void setFileCompressionInfo(String src, final FileCompressionInfo info, final XAttrSetFlag flag) throws IOException {
+    rpcServer.checkOperation(NameNode.OperationCategory.WRITE);
+
+    final List<RemoteLocation> locations =
+            rpcServer.getLocationsForPath(src, false, false);
+    RemoteMethod method = new RemoteMethod("setFileCompressionInfo",
+            new Class<?>[] {String.class, FileCompressionInfo.class, XAttrSetFlag.class},
+            new RemoteParam(), info, flag);
     rpcClient.invokeSequential(locations, method);
   }
 

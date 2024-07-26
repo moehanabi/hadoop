@@ -50,6 +50,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FsServerDefaults;
 import org.apache.hadoop.fs.Options;
 import org.apache.hadoop.fs.QuotaUsage;
@@ -980,6 +981,12 @@ public class RouterRpcServer extends AbstractService implements ClientProtocol,
   @Override // ClientProtocol
   public void setTimes(String src, long mtime, long atime) throws IOException {
     clientProto.setTimes(src, mtime, atime);
+  }
+
+  @Override // ClientProtocol
+  public void setFileCompressionInfo(String src, final FileCompressionInfo info,
+                                     final XAttrSetFlag flag) throws IOException {
+    clientProto.setFileCompressionInfo(src, info, flag);
   }
 
   @Override // ClientProtocol

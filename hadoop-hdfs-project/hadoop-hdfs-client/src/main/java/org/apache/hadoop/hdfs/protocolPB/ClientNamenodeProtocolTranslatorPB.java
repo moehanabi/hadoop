@@ -24,6 +24,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.hdfs.protocol.*;
 import org.apache.hadoop.thirdparty.com.google.common.collect.Lists;
 
@@ -173,6 +174,7 @@ import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.CreateCompre
 import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.CompressionZoneProto;
 import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.GetCZForPathRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.ListCompressionZonesRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.CompressionZonesProtos.SetFileCompressionInfoRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.CreateEncryptionZoneRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.EncryptionZoneProto;
 import org.apache.hadoop.hdfs.protocol.proto.EncryptionZonesProtos.GetEZForPathRequestProto;
@@ -1029,6 +1031,20 @@ public class ClientNamenodeProtocolTranslatorPB implements
         .build();
     try {
       rpcProxy.setTimes(null, req);
+    } catch (ServiceException e) {
+      throw ProtobufHelper.getRemoteException(e);
+    }
+  }
+
+  @Override
+  public void setFileCompressionInfo(String src, final FileCompressionInfo info, final XAttrSetFlag flag) throws IOException {
+    SetFileCompressionInfoRequestProto req = SetFileCompressionInfoRequestProto.newBuilder()
+            .setSrc(src)
+            .setFileCompressionInfo(PBHelperClient.convert(info))
+            .setFlag(PBHelperClient.convert(flag))
+            .build();
+    try {
+      rpcProxy.setFileCompressionInfo(null, req);
     } catch (ServiceException e) {
       throw ProtobufHelper.getRemoteException(e);
     }

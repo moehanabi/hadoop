@@ -367,6 +367,7 @@ message CipherOptionProto {
  */
 message FileCompressionInfoProto {
   required string compressionCodec = 1;
+  required int32 maxBufferSize = 2;
 }
 
 /**
@@ -375,6 +376,7 @@ message FileCompressionInfoProto {
  */
 message PerFileCompressionInfoProto {
   required string compressionCodec = 1;
+  required int32 maxBufferSize = 2;
 }
 
 /**

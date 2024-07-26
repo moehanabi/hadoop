@@ -1309,6 +1309,7 @@ public class PBHelperClient {
     }
     return HdfsProtos.FileCompressionInfoProto.newBuilder()
             .setCompressionCodec(info.getCompressionCodec())
+            .setMaxBufferSize(info.getMaxBufferSize())
             .build();
   }
 
@@ -1331,7 +1332,8 @@ public class PBHelperClient {
       return null;
     }
     String codec = proto.getCompressionCodec();
-    return new FileCompressionInfo(codec);
+    int maxBufferSize = proto.getMaxBufferSize();
+    return new FileCompressionInfo(codec, maxBufferSize);
   }
 
   public static List<XAttrProto> convertXAttrProto(
@@ -1368,6 +1370,28 @@ public class PBHelperClient {
       value |= XAttrSetFlagProto.XATTR_REPLACE.getNumber();
     }
     return value;
+  }
+
+  public static XAttrSetFlagProto convert(XAttrSetFlag flag) {
+    switch (flag) {
+      case CREATE:
+        return XAttrSetFlagProto.XATTR_CREATE;
+      case REPLACE:
+        return XAttrSetFlagProto.XATTR_REPLACE;
+      default:
+        return null;
+    }
+  }
+
+  public static XAttrSetFlag convert(XAttrSetFlagProto flag) {
+    switch (flag) {
+      case XATTR_CREATE:
+        return XAttrSetFlag.CREATE;
+      case XATTR_REPLACE:
+        return XAttrSetFlag.REPLACE;
+      default:
+        return null;
+    }
   }
 
   public static EncryptionZone convert(EncryptionZoneProto proto) {
@@ -3122,7 +3146,7 @@ public class PBHelperClient {
     if (fileProto == null) {
       return null;
     }
-    return new FileCompressionInfo(fileProto.getCompressionCodec());
+    return new FileCompressionInfo(fileProto.getCompressionCodec(), fileProto.getMaxBufferSize());
   }
 
   public static HdfsProtos.PerFileCompressionInfoProto convertPerFileComInfo(
@@ -3132,6 +3156,7 @@ public class PBHelperClient {
     }
     return HdfsProtos.PerFileCompressionInfoProto.newBuilder()
             .setCompressionCodec(info.getCompressionCodec())
+            .setMaxBufferSize(info.getMaxBufferSize())
             .build();
   }
 
