@@ -1310,6 +1310,7 @@ public class PBHelperClient {
     return HdfsProtos.FileCompressionInfoProto.newBuilder()
             .setCompressionCodec(info.getCompressionCodec())
             .setMaxBufferSize(info.getMaxBufferSize())
+            .setOriginalSize(info.getOriginalSize())
             .build();
   }
 
@@ -1333,7 +1334,8 @@ public class PBHelperClient {
     }
     String codec = proto.getCompressionCodec();
     int maxBufferSize = proto.getMaxBufferSize();
-    return new FileCompressionInfo(codec, maxBufferSize);
+    long originalSize = proto.getOriginalSize();
+    return new FileCompressionInfo(codec, maxBufferSize, originalSize);
   }
 
   public static List<XAttrProto> convertXAttrProto(
@@ -3146,7 +3148,7 @@ public class PBHelperClient {
     if (fileProto == null) {
       return null;
     }
-    return new FileCompressionInfo(fileProto.getCompressionCodec(), fileProto.getMaxBufferSize());
+    return new FileCompressionInfo(fileProto.getCompressionCodec(), fileProto.getMaxBufferSize(), fileProto.getOriginalSize());
   }
 
   public static HdfsProtos.PerFileCompressionInfoProto convertPerFileComInfo(
@@ -3157,6 +3159,7 @@ public class PBHelperClient {
     return HdfsProtos.PerFileCompressionInfoProto.newBuilder()
             .setCompressionCodec(info.getCompressionCodec())
             .setMaxBufferSize(info.getMaxBufferSize())
+            .setOriginalSize(info.getOriginalSize())
             .build();
   }
 

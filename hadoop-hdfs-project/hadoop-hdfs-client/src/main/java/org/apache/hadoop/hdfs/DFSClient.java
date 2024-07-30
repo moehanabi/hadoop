@@ -1066,10 +1066,9 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
               maxBufferSize = (int) (uncompressedIndexes.get(i) - uncompressedIndexes.get(i - 1));
             }
           }
-          if (maxBufferSize > fcInfo.getMaxBufferSize()) {
-            System.out.println("Max Buffer Size: " + maxBufferSize);
-            namenode.setFileCompressionInfo(dfsos.getSrc(), new FileCompressionInfo(fcInfo.getCompressionCodec(), maxBufferSize), XAttrSetFlag.REPLACE);
-          }
+          System.out.println("Max Buffer Size: " + maxBufferSize);
+          long originalSize = uncompressedIndexes.get(uncompressedIndexes.size() - 1);
+          namenode.setFileCompressionInfo(dfsos.getSrc(), new FileCompressionInfo(fcInfo.getCompressionCodec(), maxBufferSize, originalSize), XAttrSetFlag.REPLACE);
 
           setIndexes("user.hdfs.compress.file.compression.index.uncompress.", uncompressedIndexes);
           setIndexes("user.hdfs.compress.file.compression.index.compress.", compressedIndexes);
