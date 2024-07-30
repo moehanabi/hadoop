@@ -1188,8 +1188,11 @@ public class NamenodeWebHdfsMethods {
     {
       final long offsetValue = offset.getValue();
       final Long lengthValue = length.getValue();
-      final LocatedBlocks locatedblocks = cp.getBlockLocations(fullpath,
+      LocatedBlocks locatedblocks = cp.getBlockLocations(fullpath,
           offsetValue, lengthValue != null? lengthValue: Long.MAX_VALUE);
+      if (locatedblocks.getFileCompressionInfo() != null) {
+        locatedblocks = new LocatedBlocks(locatedblocks.getFileCompressionInfo().getOriginalSize(), locatedblocks.isUnderConstruction(), locatedblocks.getLocatedBlocks(), locatedblocks.getLastLocatedBlock(), locatedblocks.isLastBlockComplete(), locatedblocks.getFileEncryptionInfo(), locatedblocks.getFileCompressionInfo(), locatedblocks.getErasureCodingPolicy());
+      }
       final String js = JsonUtil.toJsonString(locatedblocks);
       return Response.ok(js).type(MediaType.APPLICATION_JSON).build();
     }

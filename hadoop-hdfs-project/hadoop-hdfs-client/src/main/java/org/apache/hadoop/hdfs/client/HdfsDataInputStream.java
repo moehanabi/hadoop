@@ -26,6 +26,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.compress.CompressInputStream;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.crypto.CryptoInputStream;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.hdfs.DFSInputStream;
 import org.apache.hadoop.hdfs.ReadStatistics;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
@@ -109,6 +110,11 @@ public class HdfsDataInputStream extends FSDataInputStream {
    * @return The visible length of the file.
    */
   public long getVisibleLength() {
+    FileCompressionInfo fcInfo = getDFSInputStream().getFileCompressionInfo();
+    if (fcInfo != null) {
+      return fcInfo.getOriginalSize();
+    }
+
     return getDFSInputStream().getFileLength();
   }
 
