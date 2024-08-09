@@ -93,6 +93,12 @@ final class FSDirTruncateOp {
             "Cannot truncate file with striped block " + src);
       }
 
+      // not support truncating compressed file
+      if (FSDirCompressionZoneOp.getFileCompressionInfo(fsd, iip) != null) {
+        throw new UnsupportedOperationException(
+                "Cannot truncate compressed file " + src);
+      }
+
       final BlockStoragePolicy lpPolicy = fsd.getBlockManager()
           .getStoragePolicy("LAZY_PERSIST");
 
