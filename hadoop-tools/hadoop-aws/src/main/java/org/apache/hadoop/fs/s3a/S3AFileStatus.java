@@ -119,7 +119,7 @@ public class S3AFileStatus extends FileStatus implements EtagSource {
       String versionId) {
     super(length, isDir, 1, blockSize, modificationTime,
         0, null, owner, owner, null,
-        path, false, true, false);
+        path, false, true, false, false);
     this.isEmptyDirectory = isemptydir;
     this.eTag = eTag;
     this.versionId = versionId;

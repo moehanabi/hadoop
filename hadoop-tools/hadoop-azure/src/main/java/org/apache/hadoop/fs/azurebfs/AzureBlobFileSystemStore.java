@@ -1794,7 +1794,7 @@ public class AzureBlobFileSystemStore implements Closeable, ListingSupport {
               group,
               null,
               path,
-              hasAcl, false, false);
+              hasAcl, false, false, false);
 
       this.version = version;
     }
