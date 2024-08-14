@@ -109,6 +109,10 @@ class FSDirConcatOp {
       throw new HadoopIllegalArgumentException("concat: target file "
           + target + " is under construction");
     }
+    // not support concating compressed file
+    if (FSDirCompressionZoneOp.getFileCompressionInfo(fsd, targetIIP) != null) {
+      throw new UnsupportedOperationException("Cannot concat compressed file " + target);
+    }
   }
 
   private static INodeFile[] verifySrcFiles(FSDirectory fsd, String[] srcs,
@@ -153,6 +157,10 @@ class FSDirConcatOp {
       if(srcINodeFile.isUnderConstruction() || srcINodeFile.numBlocks() == 0) {
         throw new HadoopIllegalArgumentException("concat: source file " + src
             + " is invalid or empty or underConstruction");
+      }
+      // not support concating compressed file
+      if (FSDirCompressionZoneOp.getFileCompressionInfo(fsd, iip) != null) {
+        throw new UnsupportedOperationException("Cannot concat compressed file " + src);
       }
 
       // source file's preferred block size cannot be greater than the target
