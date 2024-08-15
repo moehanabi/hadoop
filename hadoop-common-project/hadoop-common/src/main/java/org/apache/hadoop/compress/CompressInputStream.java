@@ -426,10 +426,10 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     byte[] compressedBuffer = getByteArray();
     byte[] decompressedBuffer = getByteArray();
     Decompressor decompressor = getDecompressor();
-    decompressor.reset();
 
     int n = 0;
     while (n >= 0 && n < length) {
+      decompressor.reset();
       long beginCompressed = getCompressedIndexBefore(position + n);
       long endCompressed = getCompressedIndexAfter(position + n);
       long beginUncompressed = getUncompressedIndexBefore(beginCompressed);
