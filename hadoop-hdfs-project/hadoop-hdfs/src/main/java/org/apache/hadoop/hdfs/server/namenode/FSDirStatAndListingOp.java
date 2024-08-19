@@ -436,7 +436,6 @@ class FSDirStatAndListingOp {
       }
       if (isCompressed) {
         fcInfo = FSDirCompressionZoneOp.getFileCompressionInfo(fsd, iip);
-        size = fcInfo.getOriginalSize();
       }
       if (needLocation) {
         final boolean inSnapshot = snapshot != Snapshot.CURRENT_STATE_ID;
