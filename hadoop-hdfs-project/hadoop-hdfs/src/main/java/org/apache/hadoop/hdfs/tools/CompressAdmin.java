@@ -228,13 +228,13 @@ public class CompressAdmin extends Configured implements Tool {
       final HdfsAdmin admin =
           new HdfsAdmin(p.toUri(), conf);
       try {
-        final FileCompressionInfo fei =
+        final FileCompressionInfo fci =
             admin.getFileCompressionInfo(p);
-        if (fei == null) {
+        if (fci == null) {
           System.err.println("No FileCompressionInfo found for path " + path);
           return 2;
         }
-        System.out.println(fei.toStringStable());
+        System.out.println(fci.toStringStable());
       } catch (IOException e) {
         System.err.println(prettifyException(e));
         return 3;
