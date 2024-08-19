@@ -407,6 +407,9 @@ public class NamenodeWebHdfsMethods {
         || op == PostOpParam.Op.APPEND) {
       status = np.getFileInfo(path);
     }
+    if (status != null && status.isCompressed() && !status.isDirectory()) {
+      status.setLen(status.getFileCompressionInfo().getOriginalSize());
+    }
     dn = chooseDatanode(namenode, path, op, openOffset, blocksize,
         excludeDatanodes, remoteAddr, status);
     if (dn == null) {
