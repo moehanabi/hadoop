@@ -426,6 +426,10 @@ public interface HdfsFileStatus
    */
   long getLen();
   /**
+   * See {@link FileStatus#setLen(long)}.
+   */
+  void setLen(long len);
+  /**
    * See {@link FileStatus#isFile()}.
    */
   boolean isFile();

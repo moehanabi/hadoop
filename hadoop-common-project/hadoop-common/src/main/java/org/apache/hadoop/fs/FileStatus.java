@@ -219,6 +219,10 @@ public class FileStatus implements Writable, Comparable<Object>,
     return length;
   }
 
+  public void setLen(final long len) {
+    length = len;
+  }
+
   /**
    * Is this a file?
    * @return true if this is a file
@@ -371,7 +375,7 @@ public class FileStatus implements Writable, Comparable<Object>,
     path = p;
   }
 
-  /* These are provided so that these values could be loaded lazily 
+  /* These are provided so that these values could be loaded lazily
    * by a filesystem (e.g. local file system).
    */
   

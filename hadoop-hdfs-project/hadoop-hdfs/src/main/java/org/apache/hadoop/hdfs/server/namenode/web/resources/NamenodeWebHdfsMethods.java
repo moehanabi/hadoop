@@ -1435,6 +1435,9 @@ public class NamenodeWebHdfsMethods {
                   if (n++ > 0) {
                     out.println(',');
                   }
+                  if (s != null && s.isCompressed() && !s.isDirectory()) {
+                    s.setLen(s.getFileCompressionInfo().getOriginalSize());
+                  }
                   out.print(JsonUtil.toJsonString(s, false));
                 }
                 // stop if last segment
