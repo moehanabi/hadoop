@@ -20,6 +20,8 @@ package org.apache.hadoop.fs.shell;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -29,6 +31,8 @@ import java.util.Map;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileCompressionInfo;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FsStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.viewfs.ViewFileSystem;
@@ -220,6 +224,23 @@ class FsUsage extends FsCommand {
     protected void processPath(PathData item) throws IOException {
       ContentSummary contentSummary = item.fs.getContentSummary(item.path);
       long length = contentSummary.getLength();
+
+      FileStatus stat = item.refreshStatus();
+      if (stat != null && stat.isCompressed() && !stat.isDirectory()) {
+        try {
+          Class<?> hdfsFileStatusClass = Class.forName("org.apache.hadoop.hdfs.protocol.HdfsFileStatus");
+          if (hdfsFileStatusClass.isInstance(stat)) {
+            Object hdfsFileStatus = hdfsFileStatusClass.cast(stat);
+            Method getFileCompressionInfo = hdfsFileStatusClass.getMethod("getFileCompressionInfo");
+            FileCompressionInfo fcInfo = (FileCompressionInfo) getFileCompressionInfo.invoke(hdfsFileStatus);
+            length = fcInfo.getOriginalSize();
+          }
+        } catch (ClassNotFoundException | InvocationTargetException | IllegalAccessException |
+                 NoSuchMethodException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
       long spaceConsumed = contentSummary.getSpaceConsumed();
       if (excludeSnapshots) {
         length -= contentSummary.getSnapshotLength();
