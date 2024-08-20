@@ -19,12 +19,16 @@
 package org.apache.hadoop.fs.shell;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileCompressionInfo;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.PathIsDirectoryException;
 import org.apache.hadoop.io.IOUtils;
 
@@ -103,7 +107,22 @@ class Tail extends FsCommand {
   }
 
   private long dumpFromOffset(PathData item, long offset) throws IOException {
-    long fileSize = item.refreshStatus().getLen();
+    FileStatus fStat = item.refreshStatus();
+    if (fStat.isCompressed()) {
+      try {
+        Class<?> hdfsFileStatusClass = Class.forName("org.apache.hadoop.hdfs.protocol.HdfsFileStatus");
+        if (hdfsFileStatusClass.isInstance(fStat)) {
+          Object hdfsFileStatus = hdfsFileStatusClass.cast(fStat);
+          Method getFileCompressionInfo = hdfsFileStatusClass.getMethod("getFileCompressionInfo");
+          FileCompressionInfo fcInfo = (FileCompressionInfo) getFileCompressionInfo.invoke(hdfsFileStatus);
+          fStat.setLen(fcInfo.getOriginalSize());
+        }
+      } catch (ClassNotFoundException | InvocationTargetException | IllegalAccessException |
+               NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    long fileSize = fStat.getLen();
     if (offset > fileSize) return fileSize;
     // treat a negative offset as relative to end of the file, floor of 0
     if (offset < 0) {
