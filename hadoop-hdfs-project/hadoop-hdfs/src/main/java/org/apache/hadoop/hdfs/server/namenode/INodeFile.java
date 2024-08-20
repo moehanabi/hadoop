@@ -20,7 +20,6 @@ package org.apache.hadoop.hdfs.server.namenode;
 import static org.apache.hadoop.hdfs.protocol.HdfsConstants.BLOCK_STORAGE_POLICY_ID_UNSPECIFIED;
 import static org.apache.hadoop.hdfs.protocol.BlockType.CONTIGUOUS;
 import static org.apache.hadoop.hdfs.protocol.BlockType.STRIPED;
-import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.COMPRESS_XATTR_FILE_COMPRESSION_INFO;
 import static org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot.CURRENT_STATE_ID;
 import static org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot.NO_SNAPSHOT_ID;
 
@@ -34,9 +33,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.StorageType;
-import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.fs.permission.PermissionStatus;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.BlockStoragePolicy;
@@ -44,8 +41,6 @@ import org.apache.hadoop.hdfs.protocol.BlockType;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.protocol.QuotaExceededException;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
-import org.apache.hadoop.hdfs.protocolPB.PBHelperClient;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockCollection;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockInfo;
 import org.apache.hadoop.hdfs.server.blockmanagement.BlockInfoStriped;
@@ -59,7 +54,6 @@ import org.apache.hadoop.hdfs.server.namenode.snapshot.FileWithSnapshotFeature;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.Snapshot;
 import org.apache.hadoop.hdfs.server.namenode.snapshot.DiffList;
 import org.apache.hadoop.hdfs.util.LongBitFormat;
-import org.apache.hadoop.thirdparty.protobuf.InvalidProtocolBufferException;
 import org.apache.hadoop.util.StringUtils;
 import static org.apache.hadoop.io.erasurecode.ErasureCodeConstants.REPLICATION_POLICY_ID;
 
@@ -877,28 +871,7 @@ public class INodeFile extends INodeWithAdditionalFields
       int snapshotId, final ContentSummaryComputationContext summary) {
     final ContentCounts counts = summary.getCounts();
     counts.addContent(Content.FILE, 1);
-
-    long fileLen;
-    FileCompressionInfo fcInfo = null;
-    XAttrFeature xAttrFeature = getXAttrFeature();
-    if (xAttrFeature != null) {
-      XAttr xAttr = getXAttrFeature().getXAttr(COMPRESS_XATTR_FILE_COMPRESSION_INFO);
-      if (xAttr != null) {
-        HdfsProtos.PerFileCompressionInfoProto fileProto;
-        try {
-          fileProto = HdfsProtos.PerFileCompressionInfoProto.parseFrom(
-                  xAttr.getValue());
-        } catch (InvalidProtocolBufferException e) {
-          throw new RuntimeException(e);
-        }
-        fcInfo = PBHelperClient.convert(fileProto);
-      }
-    }
-    if (fcInfo != null) {
-      fileLen = fcInfo.getOriginalSize();
-    } else {
-      fileLen = computeFileSize(snapshotId);
-    }
+    final long fileLen = computeFileSize(snapshotId);
     counts.addContent(Content.LENGTH, fileLen);
 
     FileWithSnapshotFeature sf = getFileWithSnapshotFeature();
