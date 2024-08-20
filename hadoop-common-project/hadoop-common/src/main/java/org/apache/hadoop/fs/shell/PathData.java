@@ -21,6 +21,8 @@ package org.apache.hadoop.fs.shell;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -30,6 +32,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileCompressionInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -159,6 +162,20 @@ public class PathData implements Comparable<PathData> {
     this.uri = stringToUri(pathString);
     this.path = fs.makeQualified(new Path(uri));
     setStat(stat);
+    if (stat != null && stat.isCompressed() && !stat.isDirectory()) {
+      try {
+        Class<?> hdfsFileStatusClass = Class.forName("org.apache.hadoop.hdfs.protocol.HdfsFileStatus");
+        if (hdfsFileStatusClass.isInstance(stat)) {
+          Object hdfsFileStatus = hdfsFileStatusClass.cast(stat);
+          Method getFileCompressionInfo = hdfsFileStatusClass.getMethod("getFileCompressionInfo");
+          FileCompressionInfo fcInfo = (FileCompressionInfo) getFileCompressionInfo.invoke(hdfsFileStatus);
+          stat.setLen(fcInfo.getOriginalSize());
+        }
+      } catch (ClassNotFoundException | InvocationTargetException | IllegalAccessException |
+               NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      }
+    }
 
     if (Path.WINDOWS) {
       inferredSchemeFromPath = checkIfSchemeInferredFromPath(pathString);
