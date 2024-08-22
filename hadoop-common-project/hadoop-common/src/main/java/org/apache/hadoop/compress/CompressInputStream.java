@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.statistics.IOStatistics;
 import org.apache.hadoop.fs.statistics.IOStatisticsSource;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
+import org.apache.hadoop.io.compress.zlib.ZlibDecompressor;
 import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 import org.apache.hadoop.util.StringUtils;
 
@@ -954,7 +955,12 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   private Decompressor getDecompressor() {
     Decompressor decompressor = decompressorPool.poll();
     if (decompressor == null) {
+      if (codec.getDecompressorType() == ZlibDecompressor.class) {
+        // native ZlibDecompressor doesn't support setting the buffer using Configuration
+        decompressor = new ZlibDecompressor(ZlibDecompressor.CompressionHeader.DEFAULT_HEADER, bufferSize + 8192);
+      } else {
         decompressor = codec.createDecompressor();
+      }
     }
 
     return decompressor;

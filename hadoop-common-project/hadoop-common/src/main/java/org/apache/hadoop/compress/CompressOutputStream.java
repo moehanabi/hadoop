@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.Syncable;
 import org.apache.hadoop.fs.impl.StoreImplementationUtils;
 import org.apache.hadoop.fs.statistics.IOStatistics;
 import org.apache.hadoop.fs.statistics.IOStatisticsSource;
-import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Compressor;
 
 import java.io.FilterOutputStream;
@@ -43,7 +42,6 @@ import static org.apache.hadoop.fs.statistics.IOStatisticsSupport.retrieveIOStat
 public class CompressOutputStream extends FilterOutputStream implements
         Syncable, CanSetDropBehind, StreamCapabilities, IOStatisticsSource {
     private final byte[] oneByteBuf = new byte[1];
-    private final CompressionCodec codec;
     private final Compressor compressor;
 //    private final int compressSize;
     private ByteBuffer uncompressedDirectBuf = null;
@@ -77,26 +75,25 @@ public class CompressOutputStream extends FilterOutputStream implements
     private boolean closed;
     private boolean closeOutputStream;
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes, double compressionRatio) throws IOException {
-        this(out, codec, streamOffset, compressSize, true, compressIndexWriter, uncompressedIndexes, compressedIndexes, compressionRatio);
+    public CompressOutputStream(OutputStream out, Compressor compressor, long streamOffset, int compressSize, CompressIndexWriter compressIndexWriter, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes, double compressionRatio) throws IOException {
+        this(out, compressor, streamOffset, compressSize, true, compressIndexWriter, uncompressedIndexes, compressedIndexes, compressionRatio);
     }
 
-    public CompressOutputStream(OutputStream out, CompressionCodec codec, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes, double compressionRatio) throws IOException {
+    public CompressOutputStream(OutputStream out, Compressor compressor, long streamOffset, int compressSize, boolean closeOutputStream, CompressIndexWriter compressIndexWriter, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes, double compressionRatio) throws IOException {
         super(out);
 
-        if (out == null || codec == null || compressIndexWriter == null) {
+        if (out == null || compressor == null || compressIndexWriter == null) {
             throw new NullPointerException();
         } else if (compressSize <= 0) {
             throw new IllegalArgumentException("Illegal compressSize");
         }
 
-        this.codec = codec;
+        this.compressor = compressor;
         this.compressionRatio = compressionRatio;
 //        this.compressSize = compressSize;
         uncompressedDirectBuf = ByteBuffer.allocateDirect(compressSize);
         uncompressedBuf = new byte[compressSize + 1024];
         compressedBuf = new byte[compressSize];
-        compressor = codec.createCompressor();
 
         // this.streamOffset = streamOffset;
         this.closeOutputStream = closeOutputStream;

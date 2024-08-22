@@ -179,6 +179,9 @@ import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.Compressor;
+import org.apache.hadoop.io.compress.zlib.ZlibCompressor;
+import org.apache.hadoop.io.compress.zlib.ZlibFactory;
 import org.apache.hadoop.io.retry.LossyRetryInvocationHandler;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RemoteException;
@@ -1098,6 +1101,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       try {
         final CompressionCodec codec = (CompressionCodec)
                 ReflectionUtils.newInstance(conf.getClassByName("org.apache.hadoop.io.compress." + fcInfo.getCompressionCodec() + "Codec"), conf);
+        final Compressor compressor = getCompressor(codec, compressSize);
         final ClientCompressIndexWriter compressIndexWriter = new ClientCompressIndexWriter();
 
         ArrayList<Long> uncompressedIndex = new ArrayList<>();
@@ -1112,9 +1116,9 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
         CompressOutputStream compressOut;
         if (cryptoOut != null) {
           // File is encrypted, wrap the crypto stream in a compress stream.
-          compressOut = new CompressOutputStream(cryptoOut, codec, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex, compressionRatio);
+          compressOut = new CompressOutputStream(cryptoOut, compressor, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex, compressionRatio);
         } else {
-          compressOut = new CompressOutputStream(dfsos, codec, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex, compressionRatio);
+          compressOut = new CompressOutputStream(dfsos, compressor, startPos, compressSize, compressIndexWriter, uncompressedIndex, compressedIndex, compressionRatio);
         }
 
         return new HdfsDataOutputStream(compressOut, statistics, startPos);
@@ -1153,6 +1157,17 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       default:
     }
     if (bufferSizeKey != null) conf.setInt(bufferSizeKey, compressSize + 8192);
+  }
+
+  private Compressor getCompressor(CompressionCodec codec, int bufferSize) {
+    Compressor compressor;
+    if (codec.getCompressorType() == ZlibCompressor.class) {
+      // native ZlibCompressor doesn't support setting the buffer using Configuration
+      compressor = new ZlibCompressor(ZlibFactory.getCompressionLevel(conf), ZlibFactory.getCompressionStrategy(conf), ZlibCompressor.CompressionHeader.DEFAULT_HEADER, bufferSize + 8192);
+    } else {
+      compressor = codec.createCompressor();
+    }
+    return compressor;
   }
 
   private void getCompressionIndex(String src, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException, ClassNotFoundException {
