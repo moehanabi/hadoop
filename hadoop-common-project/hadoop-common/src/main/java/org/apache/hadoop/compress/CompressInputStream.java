@@ -458,13 +458,20 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       if (len <= 0) {
         break;
       }
+      decompressor.reset();
       decompressor.setInput(compressedBuffer, 0, len);
       if (beginUncompressed < position) {
         // drop some unnecessary data
-        decompressor.decompress(decompressedBuffer, 0, (int) (position - beginUncompressed));
+        long unnecessaryBytes = position - beginUncompressed;
+        while (unnecessaryBytes > 0) {
+          int uncompressedBytes = decompressor.decompress(decompressedBuffer, 0, (int) unnecessaryBytes);
+          unnecessaryBytes -= uncompressedBytes;
+        }
       }
-      int uncompressedBytes = decompressor.decompress(buffer, offset + n, length - n);
-      n += uncompressedBytes;
+      int uncompressedBytes;
+      while (length > n && (uncompressedBytes = decompressor.decompress(buffer, offset + n, length - n)) > 0) {
+        n += uncompressedBytes;
+      }
     }
 
     returnByteArray(compressedBuffer);
