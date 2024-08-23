@@ -431,6 +431,10 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
       long endUncompressed = getUncompressedIndexBefore(endCompressed);
       long compressedLength = endCompressed - beginCompressed;
       long uncompressedLength = endUncompressed - beginUncompressed;
+
+      if (compressedLength <= 0) {
+        break;
+      }
       if (compressedLength == uncompressedLength) {
         // data is not compressed
         long len;
