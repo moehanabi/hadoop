@@ -157,7 +157,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     while (i < compressedIndexes.size() && compressedIndex >= compressedIndexes.get(i)) {
       i++;
     }
-    return uncompressedIndexes.get(i - 1);
+    return i <= 0 ? -1L : uncompressedIndexes.get(i - 1);
   }
 
   // before contains equal
@@ -166,7 +166,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     while (i < uncompressedIndexes.size() && uncompressedIndex >= uncompressedIndexes.get(i)) {
       i++;
     }
-    return compressedIndexes.get(i - 1);
+    return i <= 0 ? -1L : compressedIndexes.get(i - 1);
   }
 
   // after does not contain equal
@@ -175,9 +175,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     while (i < compressedIndexes.size() && compressedIndex >= compressedIndexes.get(i)) {
       i++;
     }
-    if(i>=uncompressedIndexes.size())
-      return -1;
-    return uncompressedIndexes.get(i);
+    return i >= this.uncompressedIndexes.size() ? -1L : uncompressedIndexes.get(i);
   }
 
   // after does not contain equal
@@ -186,9 +184,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
     while (i < uncompressedIndexes.size() && uncompressedIndex >= uncompressedIndexes.get(i)) {
       i++;
     }
-    if(i>=uncompressedIndexes.size())
-      return -1;
-    return compressedIndexes.get(i);
+    return i >= this.compressedIndexes.size() ? -1L : compressedIndexes.get(i);
   }
 
   /**
