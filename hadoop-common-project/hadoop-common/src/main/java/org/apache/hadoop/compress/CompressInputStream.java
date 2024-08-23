@@ -111,7 +111,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   public CompressInputStream(InputStream in, CompressionCodec codec,
                              int bufferSize, long streamOffset, ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException {
     super(in);
-    this.bufferSize = bufferSize;
+    this.bufferSize = bufferSize + 8192;
     this.codec = codec;
 //    this.streamOffset = streamOffset;
     isByteBufferReadable = in instanceof ByteBufferReadable;

@@ -92,8 +92,8 @@ public class CompressOutputStream extends FilterOutputStream implements
         this.compressionRatio = compressionRatio;
 //        this.compressSize = compressSize;
         uncompressedDirectBuf = ByteBuffer.allocateDirect(compressSize);
-        uncompressedBuf = new byte[compressSize + 1024];
-        compressedBuf = new byte[compressSize];
+        uncompressedBuf = new byte[compressSize];
+        compressedBuf = new byte[compressSize + 8192];
 
         // this.streamOffset = streamOffset;
         this.closeOutputStream = closeOutputStream;
