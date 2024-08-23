@@ -263,7 +263,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
         usingByteBufferRead = Boolean.FALSE;
       }
       if (!usingByteBufferRead) {
-        n = readFromUnderlyingStream(inBuffer, toRead);
+        n = readFromUnderlyingStream(inBuffer);
       }
     } else {
       if (usingByteBufferRead) {
@@ -272,7 +272,7 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
                   ((ReadableByteChannel) in).read(inBuffer);
         }
       } else {
-        n = readFromUnderlyingStream(inBuffer, toRead);
+        n = readFromUnderlyingStream(inBuffer);
       }
     }
     if (n <= 0) {
@@ -302,14 +302,12 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
   }
 
   /** Read data from underlying stream. */
-  private int readFromUnderlyingStream(ByteBuffer inBuffer, int toRead) throws IOException {
-    if(toRead <= 0) {
-      return -1;
-    }
+  private int readFromUnderlyingStream(ByteBuffer inBuffer) throws IOException {
+    final int toRead = inBuffer.remaining();
     final byte[] tmp = getTmpBuf();
     int n = 0;
-    while (n>=0 && inBuffer.hasRemaining()) {
-      n += in.read(tmp, 0, toRead);
+    while (n >= 0 && inBuffer.hasRemaining()) {
+      n += in.read(tmp, n, toRead - n);
     }
     if (n > 0) {
       inBuffer.put(tmp, 0, n);
