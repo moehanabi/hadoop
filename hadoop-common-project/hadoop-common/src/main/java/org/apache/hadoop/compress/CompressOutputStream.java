@@ -147,6 +147,9 @@ public class CompressOutputStream extends FilterOutputStream implements
     }
 
     private void addIndex() {
+        int indexSize = uncompressedIndexes.size();
+        if (indexSize > 0 && currentUncompressedIndex == uncompressedIndexes.get(indexSize - 1))
+            return;
         uncompressedIndexes.add(currentUncompressedIndex);
         compressedIndexes.add(currentCompressedIndex);
     }

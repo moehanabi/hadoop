@@ -32,6 +32,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -153,38 +154,42 @@ public class CompressInputStream extends FilterInputStream implements Seekable, 
 
   // before contains equal
   private long getUncompressedIndexBefore(long compressedIndex) {
-    int i = 0;
-    while (i < compressedIndexes.size() && compressedIndex >= compressedIndexes.get(i)) {
-      i++;
+    int i = Collections.binarySearch(compressedIndexes, compressedIndex);
+    if (i < 0) {
+      i = -i - 2;
     }
-    return i <= 0 ? -1L : uncompressedIndexes.get(i - 1);
+    return i < 0 ? -1L : uncompressedIndexes.get(i);
   }
 
   // before contains equal
   private long getCompressedIndexBefore(long uncompressedIndex) {
-    int i = 0;
-    while (i < uncompressedIndexes.size() && uncompressedIndex >= uncompressedIndexes.get(i)) {
-      i++;
+    int i = Collections.binarySearch(uncompressedIndexes, uncompressedIndex);
+    if (i < 0) {
+      i = -i - 2;
     }
-    return i <= 0 ? -1L : compressedIndexes.get(i - 1);
+    return i < 0 ? -1L : compressedIndexes.get(i);
   }
 
   // after does not contain equal
   private long getUncompressedIndexAfter(long compressedIndex) {
-    int i = 0;
-    while (i < compressedIndexes.size() && compressedIndex >= compressedIndexes.get(i)) {
+    int i = Collections.binarySearch(compressedIndexes, compressedIndex);
+    if (i < 0) {
+      i = -i - 1;
+    } else {
       i++;
     }
-    return i >= this.uncompressedIndexes.size() ? -1L : uncompressedIndexes.get(i);
+    return i >= uncompressedIndexes.size() ? -1L : uncompressedIndexes.get(i);
   }
 
   // after does not contain equal
   private long getCompressedIndexAfter(long uncompressedIndex) {
-    int i = 0;
-    while (i < uncompressedIndexes.size() && uncompressedIndex >= uncompressedIndexes.get(i)) {
+    int i = Collections.binarySearch(uncompressedIndexes, uncompressedIndex);
+    if (i < 0) {
+      i = -i - 1;
+    } else {
       i++;
     }
-    return i >= this.compressedIndexes.size() ? -1L : compressedIndexes.get(i);
+    return i >= compressedIndexes.size() ? -1L : compressedIndexes.get(i);
   }
 
   /**
