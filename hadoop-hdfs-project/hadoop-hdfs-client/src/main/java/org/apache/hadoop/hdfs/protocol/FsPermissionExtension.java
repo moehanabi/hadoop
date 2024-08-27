@@ -51,7 +51,7 @@ public class FsPermissionExtension extends FsPermission {
    * @param perm FsPermission containing permission bits
    */
   public FsPermissionExtension(FsPermission perm, boolean hasAcl,
-      boolean isEncrypted, boolean isCompressed,boolean isErasureCoded) {
+      boolean isEncrypted, boolean isCompressed, boolean isErasureCoded) {
     super(perm.toShort());
     aclBit = hasAcl;
     encryptedBit = isEncrypted;

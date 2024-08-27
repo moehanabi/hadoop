@@ -414,13 +414,13 @@ public class HdfsAdmin {
   }
 
   /**
-   * Create an encryption zone rooted at an empty existing directory, using the
-   * specified encryption key. An encryption zone has an associated encryption
-   * key used when reading and writing files within the zone.
+   * Create a compression zone rooted at an empty existing directory, using the
+   * specified compression codec. A compression zone has an associated compression
+   * codec used when writing files within the zone.
    *
-   * @param path    The path of the root of the encryption zone. Must refer to
+   * @param path    The path of the root of the compression zone. Must refer to
    *                an empty, existing directory.
-   * @param codec Name of key available at the KeyProvider.
+   * @param codec Name of codec available at the client.
    * @throws IOException            if there was a general IO exception
    * @throws AccessControlException if the caller does not have access to path
    * @throws FileNotFoundException  if the path does not exist
@@ -431,10 +431,10 @@ public class HdfsAdmin {
   }
 
   /**
-   * Get the path of the encryption zone for a given file or directory.
+   * Get the path of the compression zone for a given file or directory.
    *
-   * @param path The path to get the ez for.
-   * @return An CompressionZone, or null if path does not exist or is not in an
+   * @param path The path to get the cz for.
+   * @return A CompressionZone, or null if path does not exist or is not in an
    * ez.
    * @throws IOException            if there was a general IO exception
    * @throws AccessControlException if the caller does not have access to path
@@ -462,7 +462,7 @@ public class HdfsAdmin {
   /**
    * Returns the FileCompressionInfo on the HdfsFileStatus for the given path.
    * The return value can be null if the path points to a directory, or a file
-   * that is not in an encryption zone.
+   * that is not a compressed file.
    *
    * @throws FileNotFoundException if the path does not exist.
    * @throws AccessControlException if no execute permission on parent path.

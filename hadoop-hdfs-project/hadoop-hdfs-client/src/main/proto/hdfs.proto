@@ -373,7 +373,7 @@ message FileCompressionInfoProto {
 
 /**
  * Compression information for an individual
- * file within an compression zone
+ * file within a compression zone
  */
 message PerFileCompressionInfoProto {
   required string compressionCodec = 1;
@@ -382,7 +382,7 @@ message PerFileCompressionInfoProto {
 }
 
 /**
- * Compression information for an compression
+ * Compression information for a compression
  * zone
  */
 message ZoneCompressionInfoProto {

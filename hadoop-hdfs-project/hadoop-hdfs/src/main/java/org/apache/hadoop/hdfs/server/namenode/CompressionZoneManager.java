@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,8 +20,6 @@ package org.apache.hadoop.hdfs.server.namenode;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.crypto.CipherSuite;
-import org.apache.hadoop.crypto.CryptoProtocolVersion;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.UnresolvedLinkException;
 import org.apache.hadoop.fs.XAttr;
@@ -29,7 +27,6 @@ import org.apache.hadoop.fs.XAttrSetFlag;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.hdfs.protocol.CompressionZone;
-import org.apache.hadoop.hdfs.protocol.SnapshotAccessControlException;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
 import org.apache.hadoop.hdfs.protocolPB.PBHelperClient;
 import org.apache.hadoop.hdfs.server.namenode.FSDirectory.DirOp;
@@ -43,14 +40,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 import static org.apache.hadoop.fs.BatchedRemoteIterator.BatchedListEntries;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_LIST_REENCRYPTION_STATUS_NUM_RESPONSES_DEFAULT;
-import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_LIST_REENCRYPTION_STATUS_NUM_RESPONSES_KEY;
 import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.COMPRESS_XATTR_COMPRESSION_ZONE;
 
 /**
@@ -64,61 +59,9 @@ public class CompressionZoneManager {
 
   public static final Logger LOG = LoggerFactory.getLogger(CompressionZoneManager
       .class);
-
-  /**
-   * CompressionZoneInt is the internal representation of an compression zone. The
-   * external representation of an CZ is embodied in an CompressionZone and
-   * contains the CZ's pathname.
-   */
-  private static class CompressionZoneInt {
-    private final long inodeId;
-    private final String codec;
-
-    CompressionZoneInt(long inodeId, String codec) {
-      this.inodeId = inodeId;
-      this.codec = codec;
-    }
-
-    long getINodeId() {
-      return inodeId;
-    }
-
-    String getCodec() {
-      return codec;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof CompressionZoneInt)) {
-        return false;
-      }
-
-      CompressionZoneInt b = (CompressionZoneInt)o;
-      return new EqualsBuilder()
-          .append(inodeId, b.getINodeId())
-          .append(codec, b.getCodec())
-          .isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-      return new HashCodeBuilder().
-          append(inodeId).
-          append(codec).
-          toHashCode();
-    }
-  }
-
-  private TreeMap<Long, CompressionZoneInt> compressionZones = null;
   private final FSDirectory dir;
   private final int maxListCompressionZonesResponses;
-
-  FSDirectory getFSDirectory() {
-    return dir;
-  }
+  private TreeMap<Long, CompressionZoneInt> compressionZones = null;
 
   /**
    * Construct a new CompressionZoneManager.
@@ -135,6 +78,10 @@ public class CompressionZoneManager {
         DFSConfigKeys.DFS_NAMENODE_LIST_ENCRYPTION_ZONES_NUM_RESPONSES + " " +
             "must be a positive integer."
     );
+  }
+
+  FSDirectory getFSDirectory() {
+    return dir;
   }
 
   /**
@@ -157,7 +104,7 @@ public class CompressionZoneManager {
    * @param inodeId of the compression zone
    */
   void unprotectedAddCompressionZone(Long inodeId,
-      String codec) {
+                                     String codec) {
     final CompressionZoneInt cz = new CompressionZoneInt(
         inodeId, codec);
     if (compressionZones == null) {
@@ -167,7 +114,7 @@ public class CompressionZoneManager {
   }
 
   /**
-   * Remove an compression zone.
+   * Remove a compression zone.
    * <p>
    * Called while holding the FSDirectory lock.
    */
@@ -179,12 +126,12 @@ public class CompressionZoneManager {
   }
 
   /**
-   * Returns true if an IIP is within an compression zone.
+   * Returns true if an IIP is within a compression zone.
    * <p>
    * Called while holding the FSDirectory lock.
    */
-  boolean isInAnCZ(INodesInPath iip) throws UnresolvedLinkException,
-      SnapshotAccessControlException, IOException {
+  boolean isInAnCZ(INodesInPath iip) throws
+      IOException {
     assert dir.hasReadLock();
     return (getCompressionZoneForPath(iip) != null);
   }
@@ -204,13 +151,13 @@ public class CompressionZoneManager {
   }
 
   /**
-   * Looks up the CompressionZoneInt for a path within an compression zone.
+   * Looks up the CompressionZoneInt for a path within a compression zone.
    * Returns null if path is not within an CZ.
    * <p>
    * Called while holding the FSDirectory lock.
    */
   private CompressionZoneInt getCompressionZoneForPath(INodesInPath iip)
-      throws  IOException{
+      throws IOException {
     assert dir.hasReadLock();
     Preconditions.checkNotNull(iip);
     if (!hasCreatedCompressionZone()) {
@@ -257,7 +204,7 @@ public class CompressionZoneManager {
    * Called while holding the FSDirectory lock.
    */
   private CompressionZoneInt getParentCompressionZoneForPath(INodesInPath iip)
-      throws  IOException {
+      throws IOException {
     assert dir.hasReadLock();
     Preconditions.checkNotNull(iip);
     INodesInPath parentIIP = iip.getParentINodesInPath();
@@ -265,7 +212,7 @@ public class CompressionZoneManager {
   }
 
   /**
-   * Returns an CompressionZone representing the cz for a given path.
+   * Returns a compressionZone representing the cz for a given path.
    * Returns an empty marker CompressionZone if path is not in an cz.
    *
    * @param iip The INodesInPath of the path to check
@@ -299,34 +246,30 @@ public class CompressionZoneManager {
 
     INode srcINode = srcIIP.getLastINode();
     if (!srcINode.isDirectory()) {
-      throw new IOException("Attempt to create an compression zone for a file.");
+      throw new IOException("Attempt to create a compression zone for a file.");
     }
 
     if (hasCreatedCompressionZone() && compressionZones.
         get(srcINode.getId()) != null) {
       throw new IOException(
-          "Directory " + srcIIP.getPath() + " is already an compression zone.");
+          "Directory " + srcIIP.getPath() + " is already a compression zone.");
     }
 
     if (dir.isNonEmptyDirectory(srcIIP)) {
       throw new IOException(
-          "Attempt to create an compression zone for a non-empty directory.");
+          "Attempt to create a compression zone for a non-empty directory.");
     }
-//    final HdfsProtos.ZoneCompressionInfoProto proto =
-//        PBHelperClient.convert(codec);
-//    final XAttr czXAttr = XAttrHelper
-//        .buildXAttr(COMPRESS_XATTR_COMPRESSION_ZONE, proto.toByteArray());
     final HdfsProtos.ZoneCompressionInfoProto proto =
-            PBHelperClient.convert(codec);
+        PBHelperClient.convert(codec);
     final XAttr czXAttr = XAttrHelper
-            .buildXAttr(COMPRESS_XATTR_COMPRESSION_ZONE, proto.toByteArray());
+        .buildXAttr(COMPRESS_XATTR_COMPRESSION_ZONE, proto.toByteArray());
 
     final List<XAttr> xattrs = Lists.newArrayListWithCapacity(1);
     xattrs.add(czXAttr);
     // updating the xattr will call addCompressionZone,
     // done this way to handle edit log loading
     FSDirXAttrOp.unprotectedSetXAttrs(dir, srcIIP, xattrs,
-                                      EnumSet.of(XAttrSetFlag.CREATE));
+        EnumSet.of(XAttrSetFlag.CREATE));
     return czXAttr;
   }
 
@@ -351,7 +294,7 @@ public class CompressionZoneManager {
     int count = 0;
     for (CompressionZoneInt czi : tailMap.values()) {
       /*
-       Skip CZs that are only present in snapshots. Re-resolve the path to 
+       Skip CZs that are only present in snapshots. Re-resolve the path to
        see if the path's current inode ID matches CZ map's INode ID.
 
        INode#getFullPathName simply calls getParent recursively, so will return
@@ -377,6 +320,7 @@ public class CompressionZoneManager {
   /**
    * Resolves the path to inode id, then check if it's the same as the inode id
    * passed in. This is necessary to filter out zones in snapshots.
+   *
    * @param zoneId
    * @param zonePath
    * @return true if path resolve to the id, false if not.
@@ -397,17 +341,15 @@ public class CompressionZoneManager {
       INodesInPath iip = dir.getINodesInPath(zonePath, DirOp.READ_LINK);
       lastINode = iip.getLastINode();
     }
-    if (lastINode == null || lastINode.getId() != zoneId) {
-      return false;
-    }
-    return true;
+    return lastINode != null && lastINode.getId() == zoneId;
   }
 
   /**
-   * Return whether an INode is an compression zone root.
+   * Return whether an INode is a compression zone root.
+   *
    * @param inode
    * @param name
-   * @return true when INode is an compression zone root else false
+   * @return true when INode is a compression zone root else false
    * @throws FileNotFoundException
    */
   boolean isCompressionZoneRoot(final INode inode, final String name)
@@ -419,15 +361,12 @@ public class CompressionZoneManager {
     if (!inode.isDirectory()) {
       return false;
     }
-    if (!hasCreatedCompressionZone()
-        || !compressionZones.containsKey(inode.getId())) {
-      return false;
-    }
-    return true;
+    return hasCreatedCompressionZone()
+        && compressionZones.containsKey(inode.getId());
   }
 
   /**
-   * Return whether an INode is an compression zone root.
+   * Return whether an INode is a compression zone root.
    *
    * @param inode the zone inode
    * @param name
@@ -451,13 +390,60 @@ public class CompressionZoneManager {
   }
 
   /**
-   * @return Whether there has been any attempt to create an compression zone in
+   * @return Whether there has been any attempt to create a compression zone in
    * the cluster at all. If not, it is safe to quickly return null when
    * checking the compression information of any file or directory in the
    * cluster.
    */
   public boolean hasCreatedCompressionZone() {
     return compressionZones != null;
+  }
+
+  /**
+   * CompressionZoneInt is the internal representation of a compression zone. The
+   * external representation of an CZ is embodied in a compressionZone and
+   * contains the CZ's pathname.
+   */
+  private static class CompressionZoneInt {
+    private final long inodeId;
+    private final String codec;
+
+    CompressionZoneInt(long inodeId, String codec) {
+      this.inodeId = inodeId;
+      this.codec = codec;
+    }
+
+    long getINodeId() {
+      return inodeId;
+    }
+
+    String getCodec() {
+      return codec;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof CompressionZoneInt)) {
+        return false;
+      }
+
+      CompressionZoneInt b = (CompressionZoneInt) o;
+      return new EqualsBuilder()
+          .append(inodeId, b.getINodeId())
+          .append(codec, b.getCodec())
+          .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+      return new HashCodeBuilder().
+          append(inodeId).
+          append(codec).
+          toHashCode();
+    }
   }
 
 }

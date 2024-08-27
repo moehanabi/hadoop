@@ -227,13 +227,13 @@ import org.apache.hadoop.hdfs.protocol.CacheDirectiveInfo;
 import org.apache.hadoop.hdfs.protocol.CachePoolEntry;
 import org.apache.hadoop.hdfs.protocol.CachePoolInfo;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.DatanodeID;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo.DatanodeInfoBuilder;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
-import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.DatanodeReportType;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.ReencryptAction;
@@ -7920,10 +7920,10 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
   }
 
   /**
-   * Create an encryption zone on directory src using the specified key.
+   * Create a compression zone on directory src using the specified key.
    *
    * @param src     the path of a directory which will be the root of the
-   *                encryption zone. The directory must be empty.
+   *                compression zone. The directory must be empty.
    * @param keyName name of a key which must be present in the configured
    *                KeyProvider.
    * @throws AccessControlException  if the caller is not the superuser.
@@ -7993,10 +7993,10 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
   }
 
   /**
-   * Get the encryption zone for the specified path.
+   * Get the compression zone for the specified path.
    *
-   * @param srcArg the path of a file or directory to get the EZ for.
-   * @return the EZ of the of the path or null if none.
+   * @param srcArg the path of a file or directory to get the CZ for.
+   * @return the CZ of the of the path or null if none.
    * @throws AccessControlException  if the caller is not the superuser.
    * @throws UnresolvedLinkException if the path can't be resolved.
    */
@@ -8050,7 +8050,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
 
   BatchedListEntries<CompressionZone> listCompressionZones(long prevId)
           throws IOException {
-    final String operationName = "listEncryptionZones";
+    final String operationName = "listCompressionZones";
     boolean success = false;
     checkOperation(OperationCategory.READ);
     final FSPermissionChecker pc = getPermissionChecker();

@@ -79,7 +79,7 @@ public interface HdfsFileStatus
     private long fileId                    = -1L;
     private int childrenNum                = 0;
     private FileEncryptionInfo feInfo      = null;
-    private FileCompressionInfo fcInfo      = null;
+    private FileCompressionInfo fcInfo     = null;
     private byte storagePolicy             =
         HdfsConstants.BLOCK_STORAGE_POLICY_ID_UNSPECIFIED;
     private ErasureCodingPolicy ecPolicy   = null;

@@ -321,12 +321,6 @@ class FSDirXAttrOp {
                 HdfsProtos.ZoneCompressionInfoProto.parseFrom(xattr.getValue());
         fsd.czManager.addCompressionZone(inode.getId(),
                 czProto.getCompressionCodec());
-
-//        if (ecProto.hasReencryptionProto()) {
-//          ReencryptionInfoProto reProto = ecProto.getReencryptionProto();
-//          fsd.ezManager.getReencryptionStatus()
-//                  .updateZoneStatus(inode.getId(), iip.getPath(), reProto);
-//        }
       }
 
       // Add inode id to movement queue if xattrs contain satisfy xattr.

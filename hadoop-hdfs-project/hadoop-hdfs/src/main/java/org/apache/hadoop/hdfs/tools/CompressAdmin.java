@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,12 +28,11 @@ import org.apache.hadoop.hdfs.client.HdfsAdmin;
 import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.tools.TableListing;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.util.Time;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import java.io.IOException;
-import java.util.EnumSet;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -43,12 +42,33 @@ import java.util.List;
 @InterfaceAudience.Private
 public class CompressAdmin extends Configured implements Tool {
 
+  private static final AdminHelper.Command[] COMMANDS = {
+      new CreateZoneCommand(),
+      new ListZonesCommand(),
+      new GetFileCompressionInfoCommand(),
+  };
+
   public CompressAdmin() {
     this(null);
   }
 
   public CompressAdmin(Configuration conf) {
     super(conf);
+  }
+
+  public static void main(String[] argsArray) throws Exception {
+    final CompressAdmin compressAdmin = new CompressAdmin(new Configuration());
+    int res = ToolRunner.run(compressAdmin, argsArray);
+    System.exit(res);
+  }
+
+  /**
+   * NN exceptions contain the stack trace as part of the exception message.
+   * When it's a known error, pretty-print the error and squish the stack trace.
+   */
+  private static String prettifyException(Exception e) {
+    return e.getClass().getSimpleName() + ": " +
+        e.getLocalizedMessage().split("\n")[0];
   }
 
   @Override
@@ -70,30 +90,13 @@ public class CompressAdmin extends Configured implements Tool {
       return 1;
     }
     final List<String> argsList = new LinkedList<String>();
-    for (int j = 1; j < args.length; j++) {
-      argsList.add(args[j]);
-    }
+    argsList.addAll(Arrays.asList(args).subList(1, args.length));
     try {
       return command.run(getConf(), argsList);
     } catch (IllegalArgumentException e) {
       System.err.println(prettifyException(e));
       return -1;
     }
-  }
-
-  public static void main(String[] argsArray) throws Exception {
-    final CompressAdmin compressAdmin = new CompressAdmin(new Configuration());
-    int res = ToolRunner.run(compressAdmin, argsArray);
-    System.exit(res);
-  }
-
-  /**
-   * NN exceptions contain the stack trace as part of the exception message.
-   * When it's a known error, pretty-print the error and squish the stack trace.
-   */
-  private static String prettifyException(Exception e) {
-    return e.getClass().getSimpleName() + ": " +
-      e.getLocalizedMessage().split("\n")[0];
   }
 
   private static class CreateZoneCommand implements AdminHelper.Command {
@@ -117,7 +120,7 @@ public class CompressAdmin extends Configured implements Tool {
           "compression zone.");
       return getShortUsage() + "\n" +
           "Create a new compression zone.\n\n" +
-          listing.toString();
+          listing;
     }
 
     @Override
@@ -160,13 +163,13 @@ public class CompressAdmin extends Configured implements Tool {
 
     @Override
     public String getShortUsage() {
-      return "[" + getName()+ "]\n";
+      return "[" + getName() + "]\n";
     }
 
     @Override
     public String getLongUsage() {
       return getShortUsage() + "\n" +
-        "List all compression zones. Requires superuser permissions.\n\n";
+          "List all compression zones. Requires superuser permissions.\n\n";
     }
 
     @Override
@@ -179,8 +182,8 @@ public class CompressAdmin extends Configured implements Tool {
       HdfsAdmin admin = new HdfsAdmin(FileSystem.getDefaultUri(conf), conf);
       try {
         final TableListing listing = new TableListing.Builder()
-          .addField("").addField("", true)
-          .hideHeaders().build();
+            .addField("").addField("", true)
+            .hideHeaders().build();
         final RemoteIterator<CompressionZone> it = admin.listCompressionZones();
         while (it.hasNext()) {
           CompressionZone cz = it.next();
@@ -213,7 +216,7 @@ public class CompressAdmin extends Configured implements Tool {
       final TableListing listing = AdminHelper.getOptionDescriptionListing();
       listing.addRow("<path>", "The path to the file to show compression info.");
       return getShortUsage() + "\n" + "Get compression info of a file.\n\n" +
-          listing.toString();
+          listing;
     }
 
     @Override
@@ -242,10 +245,4 @@ public class CompressAdmin extends Configured implements Tool {
       return 0;
     }
   }
-
-  private static final AdminHelper.Command[] COMMANDS = {
-      new CreateZoneCommand(),
-      new ListZonesCommand(),
-      new GetFileCompressionInfoCommand(),
-  };
 }

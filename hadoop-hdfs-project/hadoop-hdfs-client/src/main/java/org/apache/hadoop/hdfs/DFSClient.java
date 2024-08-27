@@ -32,7 +32,14 @@ import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_SERV
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_TEST_DROP_NAMENODE_RESPONSE_NUM_DEFAULT;
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_CLIENT_TEST_DROP_NAMENODE_RESPONSE_NUM_KEY;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -75,8 +82,8 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileChecksum;
-import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.fs.FileCompressionInfo;
+import org.apache.hadoop.fs.FileEncryptionInfo;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsServerDefaults;
@@ -120,6 +127,8 @@ import org.apache.hadoop.hdfs.protocol.CachePoolEntry;
 import org.apache.hadoop.hdfs.protocol.CachePoolInfo;
 import org.apache.hadoop.hdfs.protocol.CachePoolIterator;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
+import org.apache.hadoop.hdfs.protocol.CompressionZone;
+import org.apache.hadoop.hdfs.protocol.CompressionZoneIterator;
 import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
 import org.apache.hadoop.hdfs.protocol.DSQuotaExceededException;
 import org.apache.hadoop.hdfs.protocol.DatanodeID;
@@ -127,9 +136,7 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.ECTopologyVerifierResult;
 import org.apache.hadoop.hdfs.protocol.EncryptionZone;
-import org.apache.hadoop.hdfs.protocol.CompressionZone;
 import org.apache.hadoop.hdfs.protocol.EncryptionZoneIterator;
-import org.apache.hadoop.hdfs.protocol.CompressionZoneIterator;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicy;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
@@ -194,8 +201,12 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenRenewer;
-import org.apache.hadoop.util.*;
+import org.apache.hadoop.util.Daemon;
+import org.apache.hadoop.util.DataChecksum;
 import org.apache.hadoop.util.DataChecksum.Type;
+import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.hadoop.util.Time;
 import org.apache.hadoop.tracing.TraceScope;
 import org.apache.hadoop.tracing.Tracer;
 import org.slf4j.Logger;
@@ -982,7 +993,6 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
 
     if (fcInfo != null) {
       CompressInputStream compressIn;
-      System.out.println("fcInfo: " + fcInfo);
       final int compressSize = fcInfo.getMaxBufferSize();
       ArrayList<Long> uncompressedIndex = new ArrayList<>();
       ArrayList<Long> compressedIndex = new ArrayList<>();
@@ -1055,7 +1065,6 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
     }
 
     if (fcInfo != null) {
-      System.out.println("fcInfo: " + fcInfo);
       final int compressSize = conf.getInt("io.compression.codec.buffersize", 256 * 1024);
       final double compressionRatio = conf.getDouble("io.compression.ratio", 0.8);
       class ClientCompressIndexWriter implements CompressIndexWriter {
@@ -1064,12 +1073,10 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
         public void writeIndex(ArrayList<Long> uncompressedIndexes, ArrayList<Long> compressedIndexes) throws IOException {
           int maxBufferSize = fcInfo.getMaxBufferSize();
           for (int i = 1; i < uncompressedIndexes.size(); i++) {
-            System.out.println("Uncompressed Index: " + uncompressedIndexes.get(i) + " Compressed Index: " + compressedIndexes.get(i));
             if (uncompressedIndexes.get(i) - uncompressedIndexes.get(i - 1) > maxBufferSize) {
               maxBufferSize = (int) (uncompressedIndexes.get(i) - uncompressedIndexes.get(i - 1));
             }
           }
-          System.out.println("Max Buffer Size: " + maxBufferSize);
           long originalSize = uncompressedIndexes.get(uncompressedIndexes.size() - 1);
           namenode.setFileCompressionInfo(dfsos.getSrc(), new FileCompressionInfo(fcInfo.getCompressionCodec(), maxBufferSize, originalSize), XAttrSetFlag.REPLACE);
 

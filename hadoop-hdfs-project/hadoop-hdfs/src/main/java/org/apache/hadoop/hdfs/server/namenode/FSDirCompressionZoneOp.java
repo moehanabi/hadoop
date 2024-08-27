@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,11 +18,13 @@
 package org.apache.hadoop.hdfs.server.namenode;
 
 import org.apache.hadoop.fs.BatchedRemoteIterator.BatchedListEntries;
-import org.apache.hadoop.fs.*;
+import org.apache.hadoop.fs.FileCompressionInfo;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.XAttr;
+import org.apache.hadoop.fs.XAttrSetFlag;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.hdfs.protocol.CompressionZone;
-import org.apache.hadoop.hdfs.protocol.SnapshotAccessControlException;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
 import org.apache.hadoop.hdfs.protocolPB.PBHelperClient;
 import org.apache.hadoop.hdfs.server.namenode.FSDirectory.DirOp;
@@ -46,22 +48,23 @@ final class FSDirCompressionZoneOp {
    * Private constructor for preventing FSDirCompressionZoneOp object creation.
    * Static-only class.
    */
-  private FSDirCompressionZoneOp() {}
-  
+  private FSDirCompressionZoneOp() {
+  }
+
   /**
-   * Create an compression zone on directory path using the specified key.
+   * Create a compression zone on directory path using the specified key.
    *
-   * @param fsd fsdirectory
-   * @param srcArg the path of a directory which will be the root of the
-   *               compression zone. The directory must be empty
-   * @param pc permission checker to check fs permission
+   * @param fsd           fsdirectory
+   * @param srcArg        the path of a directory which will be the root of the
+   *                      compression zone. The directory must be empty
+   * @param pc            permission checker to check fs permission
    * @param logRetryCache whether to record RPC ids in editlog for retry cache
    *                      rebuilding
    * @return FileStatus
    * @throws IOException
    */
   static FileStatus createCompressionZone(final FSDirectory fsd,
-      final String srcArg, final FSPermissionChecker pc, final String codec, final boolean logRetryCache) throws IOException {
+                                          final String srcArg, final FSPermissionChecker pc, final String codec, final boolean logRetryCache) throws IOException {
 
     List<XAttr> xAttrs = Lists.newArrayListWithCapacity(1);
 
@@ -81,9 +84,9 @@ final class FSDirCompressionZoneOp {
   /**
    * Get the compression zone for the specified path.
    *
-   * @param fsd fsdirectory
+   * @param fsd    fsdirectory
    * @param srcArg the path of a file or directory to get the CZ for
-   * @param pc permission checker to check fs permission
+   * @param pc     permission checker to check fs permission
    * @return the CZ with file status.
    */
   static Map.Entry<CompressionZone, FileStatus> getCZForPath(
@@ -106,7 +109,7 @@ final class FSDirCompressionZoneOp {
   }
 
   static CompressionZone getCZForPath(final FSDirectory fsd,
-      final INodesInPath iip) throws IOException {
+                                      final INodesInPath iip) throws IOException {
     fsd.readLock();
     try {
       return fsd.czManager.getCZINodeForPath(iip);
@@ -118,14 +121,14 @@ final class FSDirCompressionZoneOp {
   /**
    * Set the FileCompressionInfo for an INode.
    *
-   * @param fsd fsdirectory
+   * @param fsd  fsdirectory
    * @param info file compression information
    * @param flag action when setting xattr. Either CREATE or REPLACE.
    * @throws IOException
    */
   static List<XAttr> setFileCompressionInfo(final FSDirectory fsd,
-      final INodesInPath iip, final FileCompressionInfo info,
-      final XAttrSetFlag flag) throws IOException {
+                                            final INodesInPath iip, final FileCompressionInfo info,
+                                            final XAttrSetFlag flag) throws IOException {
     // Make the PB for the xattr
     final HdfsProtos.PerFileCompressionInfoProto proto =
         PBHelperClient.convertPerFileComInfo(info);
@@ -155,7 +158,7 @@ final class FSDirCompressionZoneOp {
    * @return consolidated file compression info; null for non-encrypted files
    */
   static FileCompressionInfo getFileCompressionInfo(final FSDirectory fsd,
-      final INodesInPath iip) throws IOException {
+                                                    final INodesInPath iip) throws IOException {
     if (iip.isRaw() || !iip.getLastINode().isFile()) {
       return null;
     }
@@ -163,7 +166,7 @@ final class FSDirCompressionZoneOp {
     try {
       XAttr fileXAttr = FSDirXAttrOp.unprotectedGetXAttrByPrefixedName(
           iip.getLastINode(), iip.getPathSnapshotId(),
-              COMPRESS_XATTR_FILE_COMPRESSION_INFO);
+          COMPRESS_XATTR_FILE_COMPRESSION_INFO);
       if (fileXAttr == null) {
         NameNode.LOG.warn("Could not find compression XAttr for file " +
             iip.getPath());
@@ -193,8 +196,8 @@ final class FSDirCompressionZoneOp {
    * @throws RetryStartFileException if key is inconsistent with current zone
    */
   static FileCompressionInfo getFileCompressionInfo(FSDirectory dir,
-      INodesInPath iip, String compressionCodec)
-          throws RetryStartFileException, IOException {
+                                                    INodesInPath iip, String compressionCodec)
+      throws IOException {
     FileCompressionInfo fcInfo = null;
     final CompressionZone zone = getCZForPath(dir, iip);
     if (zone != null) {
@@ -209,7 +212,7 @@ final class FSDirCompressionZoneOp {
   }
 
   static boolean isInAnCZ(final FSDirectory fsd, final INodesInPath iip)
-      throws UnresolvedLinkException, SnapshotAccessControlException,
+      throws
       IOException {
     if (!fsd.czManager.hasCreatedCompressionZone()) {
       return false;
@@ -223,7 +226,7 @@ final class FSDirCompressionZoneOp {
   }
 
   static BatchedListEntries<CompressionZone> listCompressionZones(
-          final FSDirectory fsd, final long prevId) throws IOException {
+      final FSDirectory fsd, final long prevId) throws IOException {
     fsd.readLock();
     try {
       return fsd.czManager.listCompressionZones(prevId);
