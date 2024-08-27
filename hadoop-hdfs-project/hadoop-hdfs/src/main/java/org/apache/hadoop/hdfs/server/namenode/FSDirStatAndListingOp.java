@@ -417,7 +417,7 @@ class FSDirStatAndListingOp {
     LocatedBlocks loc = null;
 
     final boolean isEncrypted = FSDirEncryptionZoneOp.isInAnEZ(fsd, iip);
-    final boolean isCompressed = FSDirCompressionZoneOp.isInAnCZ(fsd, iip);
+    boolean isCompressed = false;
     FileEncryptionInfo feInfo = null;
     FileCompressionInfo fcInfo = null;
     final ErasureCodingPolicy ecPolicy = FSDirErasureCodingOp
@@ -434,8 +434,9 @@ class FSDirStatAndListingOp {
       if (isEncrypted) {
         feInfo = FSDirEncryptionZoneOp.getFileEncryptionInfo(fsd, iip);
       }
-      if (isCompressed) {
-        fcInfo = FSDirCompressionZoneOp.getFileCompressionInfo(fsd, iip);
+      fcInfo = FSDirCompressionZoneOp.getFileCompressionInfo(fsd, iip);
+      if (fcInfo != null) {
+        isCompressed = true;
       }
       if (needLocation) {
         final boolean inSnapshot = snapshot != Snapshot.CURRENT_STATE_ID;
